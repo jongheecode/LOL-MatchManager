@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { background: #080b13; color: #e8ebf3; font-family: 'Noto Sans KR', system-ui, sans-serif; }
+  a { color: #d8b463; text-decoration: none; }
+  a:hover { color: #ecca82; }
+  input { font-family: inherit; }
+  input::placeholder { color: #55617a; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: #262f45; border-radius: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pulse { 0%,100% { opacity: .4; } 50% { opacity: 1; } }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @keyframes pop { 0% { transform: scale(.4); opacity: 0; } 70% { transform: scale(1.15); } 100% { transform: scale(1); opacity: 1; } }
+  @keyframes gaugeShine { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+</style>
+</helmet>
+<div style="min-height: 100vh; background: radial-gradient(1200px 600px at 50% -10%, #101a2e 0%, #080b13 60%); position: relative;">
+
+  <!-- ============ SCREEN 1: INPUT ============ -->
+  <sc-if value="{{ isInput }}" hint-placeholder-val="{{ true }}">
+  <div data-screen-label="입력" style="max-width: 1440px; margin: 0 auto; padding: 30px 44px 120px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px;">
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <div style="width: 44px; height: 44px; background: linear-gradient(140deg, #e6c574, #b98f38); clip-path: polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%); display: flex; align-items: center; justify-content: center;">
+          <span style="font-family: 'Rajdhani'; font-weight: 700; font-size: 22px; color: #0b0f18;">P</span>
+        </div>
+        <div>
+          <div style="font-family: 'Rajdhani'; font-weight: 700; font-size: 26px; letter-spacing: 1px; line-height: 1;">PENTA<span style="color: #d8b463;">BALANCE</span></div>
+          <div style="font-size: 12.5px; color: #8b93a7; margin-top: 3px; letter-spacing: .2px;">10명만 넣으면 끝. 공정한 5:5 내전 팀 자동 매칭</div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <div style="font-family: 'IBM Plex Mono'; font-size: 13px; color: #8b93a7;">등록 <span style="color: #d8b463; font-weight: 600;">{{ filledCount }}</span> / 10</div>
+        <button onClick="{{ onClearAll }}" style="background: transparent; border: 1px solid #2a3350; color: #8b93a7; padding: 8px 14px; border-radius: 8px; font-size: 13px; cursor: pointer; white-space: nowrap;" style-hover="{{ btnGhostHover }}">전체 지우기</button>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 320px; gap: 22px; align-items: start;">
+      <!-- slots -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <sc-for list="{{ slots }}" as="slot" hint-placeholder-count="10">
+        <div style="{{ slot.cardStyle }}">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 26px; height: 30px; flex: none; background: #1c2437; clip-path: polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%); display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono'; font-size: 13px; color: #6f7b96;">{{ slot.num }}</div>
+            <input value="{{ slot.query }}" placeholder="닉네임 #KR1" onInput="{{ slot.onInput }}" onKeyDown="{{ slot.onKey }}" onBlur="{{ slot.onCommit }}" style="flex: 1; min-width: 0; background: #0e1524; border: 1px solid #263049; color: #e8ebf3; padding: 9px 11px; border-radius: 8px; font-size: 14px; outline: none;" style-focus="{{ inputFocus }}">
+            <div style="display: flex; gap: 4px;">
+              <sc-for list="{{ slot.posButtons }}" as="pb" hint-placeholder-count="5">
+              <button onClick="{{ pb.onClick }}" title="{{ pb.label }}" style="{{ pb.style }}">{{ pb.abbr }}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="margin-top: 10px; min-height: 44px;">
+            <sc-if value="{{ slot.isEmpty }}" hint-placeholder-val="{{ true }}">
+              <div style="display: flex; align-items: center; gap: 8px; color: #55617a; font-size: 12.5px; padding: 6px 2px;">
+                <div style="width: 30px; height: 30px; border-radius: 8px; border: 1px dashed #2a3350;"></div>
+                Riot ID를 입력하면 전적을 불러옵니다
+              </div>
+            </sc-if>
+            <sc-if value="{{ slot.isLoading }}">
+              <div style="display: flex; align-items: center; gap: 10px; padding: 6px 2px;">
+                <div style="width: 18px; height: 18px; border: 2px solid #2a3350; border-top-color: #d8b463; border-radius: 50%; animation: spin .7s linear infinite;"></div>
+                <span style="font-size: 12.5px; color: #b6c0d6;">전적 불러오는 중...</span>
+              </div>
+            </sc-if>
+            <sc-if value="{{ slot.isError }}">
+              <div style="display: flex; align-items: center; gap: 9px; padding: 6px 2px; animation: fadeUp .25s;">
+                <div style="width: 30px; height: 30px; border-radius: 8px; background: rgba(240,69,75,.12); border: 1px solid rgba(240,69,75,.4); display: flex; align-items: center; justify-content: center; color: #f0454b; font-weight: 700;">!</div>
+                <span style="font-size: 12.5px; color: #f0797d;">존재하지 않는 소환사입니다. 닉네임#태그를 확인하세요</span>
+              </div>
+            </sc-if>
+            <sc-if value="{{ slot.isDone }}">
+              <div style="display: flex; align-items: center; gap: 11px; padding: 2px; animation: fadeUp .3s;">
+                <div style="width: 40px; height: 40px; flex: none; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #dfe6f5; border: 1px solid rgba(255,255,255,.08); {{ slot.avatarStyle }}">{{ slot.letter }}</div>
+                <div style="min-width: 0; flex: 1;">
+                  <div style="display: flex; align-items: center; gap: 7px;">
+                    <div style="width: 15px; height: 17px; flex: none; clip-path: polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%); {{ slot.tierEmblem }}"></div>
+                    <span style="font-size: 13.5px; color: #e8ebf3; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ slot.pname }}</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px; margin-top: 3px; font-family: 'IBM Plex Mono'; font-size: 11.5px; color: #8b93a7;">
+                    <span style="color: #b6c0d6;">{{ slot.tierText }}</span>
+                    <span style="width: 3px; height: 3px; border-radius: 50%; background: #3a445e;"></span>
+                    <span style="color: {{ slot.posColor }};">{{ slot.posLabel }}</span>
+                  </div>
+                </div>
+                <div style="text-align: right; flex: none;">
+                  <div style="font-family: 'IBM Plex Mono'; font-size: 15px; color: #d8b463; font-weight: 600;">{{ slot.score }}</div>
+                  <div style="font-size: 10px; color: #6f7b96; letter-spacing: .5px;">MMR</div>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+        </sc-for>
+      </div>
+
+      <!-- sidebar -->
+      <div style="display: flex; flex-direction: column; gap: 16px; position: sticky; top: 20px;">
+        <div style="background: linear-gradient(160deg, #141a28, #101524); border: 1px solid #222b42; border-radius: 14px; padding: 16px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+            <div style="font-size: 13.5px; font-weight: 700; color: #e8ebf3;">저장된 플레이어</div>
+            <button onClick="{{ onFillDemo }}" style="background: rgba(216,180,99,.12); border: 1px solid rgba(216,180,99,.35); color: #d8b463; padding: 5px 10px; border-radius: 7px; font-size: 11.5px; cursor: pointer; font-weight: 600;">10명 예시 채우기</button>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 5px; max-height: 460px; overflow-y: auto; margin: 0 -4px; padding: 0 4px;">
+            <sc-for list="{{ saved }}" as="sv" hint-placeholder-count="14">
+            <button onClick="{{ sv.onClick }}" style="{{ sv.style }}">
+              <div style="width: 30px; height: 30px; flex: none; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #dfe6f5; {{ sv.avatarStyle }}">{{ sv.letter }}</div>
+              <div style="flex: 1; min-width: 0; text-align: left;">
+                <div style="font-size: 12.5px; color: #dbe1ee; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ sv.name }}</div>
+                <div style="font-family: 'IBM Plex Mono'; font-size: 10.5px; color: #7f8aa3;">{{ sv.tierText }} · {{ sv.posLabel }}</div>
+              </div>
+              <span style="{{ sv.badgeStyle }}">{{ sv.badge }}</span>
+            </button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="background: #0e1422; border: 1px solid #1c2338; border-radius: 12px; padding: 13px 15px; font-size: 11.5px; color: #6f7b96; line-height: 1.7;">
+          <span style="color: #8b93a7; font-weight: 600;">TIP</span> · 슬롯 오른쪽 <span style="color: #b6c0d6;">포지션 버튼</span>으로 선호 라인을 지정하면 배정에 우선 반영됩니다. <span style="color: #b6c0d6;">없는유저</span> 를 입력하면 에러 상태를 볼 수 있어요.
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div style="position: fixed; left: 0; right: 0; bottom: 0; padding: 18px 44px 26px; background: linear-gradient(0deg, #080b13 30%, rgba(8,11,19,0)); z-index: 30;">
+      <div style="max-width: 1440px; margin: 0 auto; display: flex; justify-content: center;">
+        <button onClick="{{ onStart }}" disabled="{{ startDisabled }}" style="{{ ctaStyle }}">
+          <span>팀 짜기</span>
+          <span style="font-family: 'IBM Plex Mono'; font-size: 14px; opacity: .8;">{{ filledCount }}/10</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ============ SCREEN 2: ANALYZING ============ -->
+  <sc-if value="{{ isAnalyzing }}">
+  <div data-screen-label="분석중" style="max-width: 720px; margin: 0 auto; padding: 90px 40px; min-height: 100vh; display: flex; flex-direction: column; justify-content: center;">
+    <div style="text-align: center; margin-bottom: 8px;">
+      <div style="width: 56px; height: 56px; margin: 0 auto 18px; background: linear-gradient(140deg, #e6c574, #b98f38); clip-path: polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%); display: flex; align-items: center; justify-content: center; animation: pulse 1.6s ease-in-out infinite;">
+        <div style="width: 20px; height: 20px; border: 3px solid rgba(11,15,24,.35); border-top-color: #0b0f18; border-radius: 50%; animation: spin .8s linear infinite;"></div>
+      </div>
+      <div style="font-family: 'Rajdhani'; font-weight: 700; font-size: 28px; letter-spacing: .5px;">전적 분석 중</div>
+      <div style="font-size: 13.5px; color: #8b93a7; margin-top: 6px; min-height: 20px; font-family: 'IBM Plex Mono';">{{ analyzeCurrent }}</div>
+    </div>
+
+    <div style="margin: 26px 0 22px;">
+      <div style="display: flex; justify-content: space-between; font-family: 'IBM Plex Mono'; font-size: 12px; color: #8b93a7; margin-bottom: 8px;">
+        <span>전체 진행률</span>
+        <span style="color: #d8b463;">{{ analyzePct }}%</span>
+      </div>
+      <div style="height: 8px; background: #131a29; border-radius: 6px; overflow: hidden; border: 1px solid #1e2740;">
+        <div style="height: 100%; border-radius: 6px; background: linear-gradient(90deg, #b98f38, #e6c574); transition: width .4s ease; {{ analyzeBarStyle }}"></div>
+      </div>
+    </div>
+
+    <div style="background: #0f1524; border: 1px solid #1e2740; border-radius: 14px; padding: 10px;">
+      <sc-for list="{{ analyzeList }}" as="ap" hint-placeholder-count="10">
+      <div style="{{ ap.rowStyle }}">
+        <div style="width: 30px; height: 30px; flex: none; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #dfe6f5; {{ ap.avatarStyle }}">{{ ap.letter }}</div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-size: 13px; color: #dbe1ee; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ ap.name }}</div>
+        </div>
+        <div style="{{ ap.statusStyle }}">{{ ap.statusText }}</div>
+      </div>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ============ SCREEN 3: RESULT ============ -->
+  <sc-if value="{{ isResult }}">
+  <div data-screen-label="결과" style="max-width: 1440px; margin: 0 auto; padding: 26px 40px 40px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="width: 34px; height: 34px; background: linear-gradient(140deg, #e6c574, #b98f38); clip-path: polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%); display: flex; align-items: center; justify-content: center;"><span style="font-family: 'Rajdhani'; font-weight: 700; font-size: 17px; color: #0b0f18;">P</span></div>
+        <div style="font-family: 'Rajdhani'; font-weight: 700; font-size: 20px; letter-spacing: .5px;">매칭 결과</div>
+      </div>
+      <div style="font-size: 12px; color: #6f7b96;">카드를 <span style="color: #d8b463;">드래그</span>해 두 팀 간 스왑하면 승률이 실시간 갱신됩니다</div>
+    </div>
+
+    <!-- win gauge -->
+    <div style="background: linear-gradient(160deg, #121826, #0d1220); border: 1px solid #222b42; border-radius: 16px; padding: 20px 26px; margin-bottom: 22px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 12px;">
+        <div style="display: flex; align-items: baseline; gap: 10px;">
+          <span style="font-family: 'Rajdhani'; font-weight: 700; font-size: 15px; letter-spacing: 2px; color: #5aa9ff;">BLUE</span>
+          <span style="font-family: 'IBM Plex Mono'; font-weight: 600; font-size: 34px; color: #5aa9ff; line-height: 1;">{{ bluePct }}%</span>
+        </div>
+        <div style="font-family: 'Rajdhani'; font-weight: 600; font-size: 13px; color: #6f7b96; letter-spacing: 3px; padding-bottom: 4px;">예상 승률</div>
+        <div style="display: flex; align-items: baseline; gap: 10px;">
+          <span style="font-family: 'IBM Plex Mono'; font-weight: 600; font-size: 34px; color: #f0656a; line-height: 1;">{{ redPct }}%</span>
+          <span style="font-family: 'Rajdhani'; font-weight: 700; font-size: 15px; letter-spacing: 2px; color: #f0656a;">RED</span>
+        </div>
+      </div>
+      <div style="height: 16px; border-radius: 9px; overflow: hidden; display: flex; background: #0d1220; border: 1px solid #1e2740;">
+        <div style="height: 100%; background: linear-gradient(90deg, #2f5fb0, #5aa9ff); transition: width .5s cubic-bezier(.4,1.2,.4,1); {{ blueGaugeStyle }}"></div>
+        <div style="height: 100%; flex: 1; background: linear-gradient(90deg, #f0656a, #b0353a);"></div>
+      </div>
+      <div style="text-align: center; margin-top: 11px; font-size: 12.5px; color: #8b93a7;">{{ balanceVerdict }}</div>
+    </div>
+
+    <!-- teams -->
+    <div style="display: grid; grid-template-columns: 1fr 54px 1fr; gap: 0; align-items: start;">
+      <!-- BLUE -->
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <sc-for list="{{ blueCards }}" as="c" hint-placeholder-count="5">
+        <div draggable="true" onDragStart="{{ c.onDragStart }}" onDragOver="{{ c.onDragOver }}" onDrop="{{ c.onDrop }}" onDragEnd="{{ c.onDragEnd }}" style="{{ c.cardStyle }}">
+          <div style="width: 32px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+            <div style="width: 26px; height: 30px; clip-path: polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #0b0f18; {{ c.posEmblem }}">{{ c.pos }}</div>
+            <span style="font-size: 10px; color: {{ c.posColor }};">{{ c.posLabel }}</span>
+          </div>
+          <div style="width: 50px; height: 50px; flex: none; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 20px; color: #eef2fb; border: 1px solid rgba(255,255,255,.1); {{ c.avatarStyle }}">{{ c.letter }}</div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="display: flex; align-items: center; gap: 7px;">
+              <span style="font-size: 15px; font-weight: 600; color: #eef2fb; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ c.name }}</span>
+              <span style="font-family: 'IBM Plex Mono'; font-size: 11px; color: #5c6884;">{{ c.tag }}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+              <div style="display: flex; align-items: center; gap: 5px;">
+                <div style="width: 14px; height: 16px; clip-path: polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%); {{ c.tierEmblem }}"></div>
+                <span style="font-family: 'IBM Plex Mono'; font-size: 12px; color: #b6c0d6;">{{ c.tierText }}</span>
+              </div>
+            </div>
+            <div style="font-size: 11.5px; color: #7f8aa3; margin-top: 6px;">{{ c.reason }}</div>
+          </div>
+          <div style="flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 7px;">
+            <div style="text-align: right;">
+              <div style="font-family: 'IBM Plex Mono'; font-size: 16px; font-weight: 600; color: {{ c.wrColor }};">{{ c.wr }}%</div>
+              <div style="font-size: 9.5px; color: #6f7b96; letter-spacing: .3px;">최근 10경기</div>
+            </div>
+            <div style="display: flex; gap: 4px;">
+              <sc-for list="{{ c.champs }}" as="ch" hint-placeholder-count="3">
+              <div title="{{ ch.name }}" style="width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 8.5px; font-weight: 700; color: #f2f5fc; border: 1px solid rgba(255,255,255,.14); {{ ch.style }}">{{ ch.abbr }}</div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+        </sc-for>
+      </div>
+
+      <!-- VS spine -->
+      <div style="display: flex; flex-direction: column; align-items: center; padding-top: 100px; gap: 12px;">
+        <div style="font-family: 'Rajdhani'; font-weight: 700; font-size: 22px; color: #4a5573;">VS</div>
+        <div style="width: 1px; flex: 1; background: linear-gradient(#5aa9ff33, #2a3350, #f0656a33); min-height: 200px;"></div>
+      </div>
+
+      <!-- RED -->
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <sc-for list="{{ redCards }}" as="c" hint-placeholder-count="5">
+        <div draggable="true" onDragStart="{{ c.onDragStart }}" onDragOver="{{ c.onDragOver }}" onDrop="{{ c.onDrop }}" onDragEnd="{{ c.onDragEnd }}" style="{{ c.cardStyle }}">
+          <div style="flex: none; display: flex; flex-direction: column; align-items: flex-start; gap: 7px;">
+            <div style="display: flex; gap: 4px;">
+              <sc-for list="{{ c.champs }}" as="ch" hint-placeholder-count="3">
+              <div title="{{ ch.name }}" style="width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 8.5px; font-weight: 700; color: #f2f5fc; border: 1px solid rgba(255,255,255,.14); {{ ch.style }}">{{ ch.abbr }}</div>
+              </sc-for>
+            </div>
+            <div style="text-align: left;">
+              <div style="font-family: 'IBM Plex Mono'; font-size: 16px; font-weight: 600; color: {{ c.wrColor }};">{{ c.wr }}%</div>
+              <div style="font-size: 9.5px; color: #6f7b96; letter-spacing: .3px;">최근 10경기</div>
+            </div>
+          </div>
+          <div style="flex: 1; min-width: 0; text-align: right;">
+            <div style="display: flex; align-items: center; gap: 7px; justify-content: flex-end;">
+              <span style="font-family: 'IBM Plex Mono'; font-size: 11px; color: #5c6884;">{{ c.tag }}</span>
+              <span style="font-size: 15px; font-weight: 600; color: #eef2fb; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ c.name }}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px; justify-content: flex-end;">
+              <span style="font-family: 'IBM Plex Mono'; font-size: 12px; color: #b6c0d6;">{{ c.tierText }}</span>
+              <div style="width: 14px; height: 16px; clip-path: polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%); {{ c.tierEmblem }}"></div>
+            </div>
+            <div style="font-size: 11.5px; color: #7f8aa3; margin-top: 6px;">{{ c.reason }}</div>
+          </div>
+          <div style="width: 50px; height: 50px; flex: none; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 20px; color: #eef2fb; border: 1px solid rgba(255,255,255,.1); {{ c.avatarStyle }}">{{ c.letter }}</div>
+          <div style="width: 32px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+            <div style="width: 26px; height: 30px; clip-path: polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #0b0f18; {{ c.posEmblem }}">{{ c.pos }}</div>
+            <span style="font-size: 10px; color: {{ c.posColor }};">{{ c.posLabel }}</span>
+          </div>
+        </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- balance summary -->
+    <div style="margin-top: 22px; background: #0f1524; border: 1px solid #1e2740; border-radius: 14px; overflow: hidden;">
+      <button onClick="{{ onToggleSummary }}" style="width: 100%; display: flex; align-items: center; justify-content: space-between; background: transparent; border: none; color: #e8ebf3; padding: 15px 20px; cursor: pointer; font-size: 14px; font-weight: 600;">
+        <span>팀 밸런스 근거 요약</span>
+        <span style="font-family: 'IBM Plex Mono'; color: #8b93a7; transition: transform .2s; {{ summaryChevron }}">▾</span>
+      </button>
+      <sc-if value="{{ summaryOpen }}" hint-placeholder-val="{{ true }}">
+      <div style="padding: 4px 20px 20px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; animation: fadeUp .25s;">
+        <div style="background: #0b1120; border: 1px solid #1a2236; border-radius: 11px; padding: 15px;">
+          <div style="font-size: 11.5px; color: #6f7b96; margin-bottom: 12px; letter-spacing: .3px;">평균 티어 점수 (MMR)</div>
+          <div style="display: flex; flex-direction: column; gap: 9px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="width: 34px; font-size: 11px; color: #5aa9ff; font-weight: 600;">BLUE</span>
+              <div style="flex: 1; height: 7px; background: #131a29; border-radius: 5px; overflow: hidden;"><div style="height: 100%; background: #5aa9ff; {{ bScoreBar }}"></div></div>
+              <span style="font-family: 'IBM Plex Mono'; font-size: 13px; color: #dbe1ee; width: 44px; text-align: right;">{{ bScore }}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="width: 34px; font-size: 11px; color: #f0656a; font-weight: 600;">RED</span>
+              <div style="flex: 1; height: 7px; background: #131a29; border-radius: 5px; overflow: hidden;"><div style="height: 100%; background: #f0656a; {{ rScoreBar }}"></div></div>
+              <span style="font-family: 'IBM Plex Mono'; font-size: 13px; color: #dbe1ee; width: 44px; text-align: right;">{{ rScore }}</span>
+            </div>
+          </div>
+          <div style="margin-top: 12px; font-size: 11.5px; color: #7f8aa3;">{{ scoreVerdict }}</div>
+        </div>
+        <div style="background: #0b1120; border: 1px solid #1a2236; border-radius: 11px; padding: 15px;">
+          <div style="font-size: 11.5px; color: #6f7b96; margin-bottom: 12px; letter-spacing: .3px;">포지션 커버리지</div>
+          <div style="display: flex; flex-direction: column; gap: 7px;">
+            <sc-for list="{{ coverage }}" as="cv" hint-placeholder-count="5">
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
+              <span style="width: 30px; color: #8b93a7;">{{ cv.label }}</span>
+              <span style="{{ cv.blueDot }}"></span>
+              <span style="flex: 1; color: #b6c0d6; font-size: 11px;">{{ cv.blueName }}</span>
+              <span style="{{ cv.redDot }}"></span>
+              <span style="flex: 1; color: #b6c0d6; font-size: 11px; text-align: right;">{{ cv.redName }}</span>
+            </div>
+            </sc-for>
+          </div>
+          <div style="margin-top: 12px; font-size: 11.5px; color: #7f8aa3;">주포지션 배정 {{ honoredPct }}% · 전 라인 충족</div>
+        </div>
+        <div style="background: #0b1120; border: 1px solid #1a2236; border-radius: 11px; padding: 15px;">
+          <div style="font-size: 11.5px; color: #6f7b96; margin-bottom: 12px; letter-spacing: .3px;">최근 폼 비교</div>
+          <div style="display: flex; align-items: flex-end; justify-content: center; gap: 30px; height: 92px;">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; justify-content: flex-end; height: 100%;">
+              <span style="font-family: 'IBM Plex Mono'; font-size: 13px; color: #5aa9ff;">{{ bForm }}%</span>
+              <div style="width: 34px; background: linear-gradient(#5aa9ff, #2f5fb0); border-radius: 5px 5px 0 0; {{ bFormBar }}"></div>
+              <span style="font-size: 11px; color: #5aa9ff; font-weight: 600;">BLUE</span>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; justify-content: flex-end; height: 100%;">
+              <span style="font-family: 'IBM Plex Mono'; font-size: 13px; color: #f0656a;">{{ rForm }}%</span>
+              <div style="width: 34px; background: linear-gradient(#f0656a, #b0353a); border-radius: 5px 5px 0 0; {{ rFormBar }}"></div>
+              <span style="font-size: 11px; color: #f0656a; font-weight: 600;">RED</span>
+            </div>
+          </div>
+          <div style="margin-top: 8px; font-size: 11.5px; color: #7f8aa3; text-align: center;">{{ formVerdict }}</div>
+        </div>
+      </div>
+      </sc-if>
+    </div>
+
+    <!-- actions -->
+    <div style="margin-top: 22px; display: flex; justify-content: center; gap: 12px;">
+      <button onClick="{{ onReshuffle }}" style="display: flex; align-items: center; gap: 8px; background: #151c2d; border: 1px solid #2a3350; color: #dbe1ee; padding: 13px 22px; border-radius: 11px; font-size: 14px; font-weight: 500; cursor: pointer;" style-hover="{{ btnHover }}">다시 짜기 (다른 조합)</button>
+      <button onClick="{{ onCopy }}" style="display: flex; align-items: center; gap: 8px; background: linear-gradient(140deg, #e6c574, #c19a3f); border: none; color: #0b0f18; padding: 13px 24px; border-radius: 11px; font-size: 14px; font-weight: 700; cursor: pointer;" style-hover="{{ ctaHover }}">결과 복사 (디스코드용)</button>
+      <button onClick="{{ onReset }}" style="background: transparent; border: 1px solid #2a3350; color: #8b93a7; padding: 13px 22px; border-radius: 11px; font-size: 14px; cursor: pointer;" style-hover="{{ btnGhostHover }}">처음으로</button>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- toast -->
+  <sc-if value="{{ toast }}">
+    <div style="position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: #1a2236; border: 1px solid #d8b46355; color: #ecca82; padding: 12px 22px; border-radius: 10px; font-size: 13.5px; box-shadow: 0 12px 40px rgba(0,0,0,.5); z-index: 50; animation: fadeUp .25s;">{{ toast }}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  posList = [['TOP','탑','#e0a94f'],['JG','정글','#4fd18a'],['MID','미드','#5aa9ff'],['AD','원딜','#f0724b'],['SUP','서폿','#c07be0']];
+  tiers = [
+    {name:'아이언',color:'#7a6f66'},{name:'브론즈',color:'#a97142'},{name:'실버',color:'#9fb0bf'},
+    {name:'골드',color:'#e0b458'},{name:'플래티넘',color:'#4fd1c5'},{name:'에메랄드',color:'#2ec77a'},
+    {name:'다이아',color:'#6aa9ff'},{name:'마스터',color:'#c05ce0'},{name:'그마',color:'#f0656a'},{name:'챌린저',color:'#ecd98a'}
+  ];
+  champPool = ['리신','제드','아리','카이사','쓰레쉬','피오라','오리아나','진','룰루','오른','카직스','탈론','아펠리오스','알리스타','세주아니','신드라','바루스','나미','케넨','니달리'];
+  pool = [
+    {name:'렉사이광인',tag:'KR1',score:2680,mainPos:'JG',hue:145,form:{wr:62,trend:'up'},champs:['리신','자르반','비에고']},
+    {name:'미드차이나',tag:'1234',score:2820,mainPos:'MID',hue:210,form:{wr:55,trend:'flat'},champs:['아리','제드','사일러스']},
+    {name:'원딜장인님',tag:'KR2',score:2740,mainPos:'AD',hue:25,form:{wr:58,trend:'up'},champs:['카이사','이즈리얼','징크스']},
+    {name:'서폿본능',tag:'KR3',score:2510,mainPos:'SUP',hue:285,form:{wr:51,trend:'down'},champs:['쓰레쉬','레오나','파이크']},
+    {name:'탑솔제왕',tag:'TOP1',score:2900,mainPos:'TOP',hue:40,form:{wr:60,trend:'up'},champs:['잭스','피오라','크산테']},
+    {name:'정글차이',tag:'JG1',score:2450,mainPos:'JG',hue:160,form:{wr:48,trend:'down'},champs:['자르반','세주아니','마오카이']},
+    {name:'미드왕자',tag:'MID9',score:2600,mainPos:'MID',hue:225,form:{wr:53,trend:'flat'},champs:['오리아나','신드라','아지르']},
+    {name:'딜러중의딜러',tag:'ADC',score:2560,mainPos:'AD',hue:10,form:{wr:54,trend:'up'},champs:['진','애쉬','바루스']},
+    {name:'유틸서폿',tag:'SUP7',score:2380,mainPos:'SUP',hue:300,form:{wr:49,trend:'flat'},champs:['룰루','나미','밀리오']},
+    {name:'만능탑',tag:'FLEX',score:2700,mainPos:'TOP',hue:50,form:{wr:56,trend:'up'},champs:['오른','나르','케넨']},
+    {name:'갱킹머신',tag:'GANK',score:2620,mainPos:'JG',hue:135,form:{wr:57,trend:'up'},champs:['킨드레드','카직스','니달리']},
+    {name:'로밍미드',tag:'ROAM',score:2480,mainPos:'MID',hue:200,form:{wr:50,trend:'down'},champs:['탈론','카타리나','갈리오']},
+    {name:'하이퍼캐리',tag:'CARY',score:2760,mainPos:'AD',hue:15,form:{wr:59,trend:'up'},champs:['아펠리오스','제리','루시안']},
+    {name:'든든서폿',tag:'HARD',score:2430,mainPos:'SUP',hue:270,form:{wr:52,trend:'flat'},champs:['알리스타','브라움','타릭']}
+  ];
+
+  state = {
+    screen: 'input',
+    slots: Array.from({length:10}, () => ({query:'', status:'empty', data:null, pref:null})),
+    teams: null,
+    summaryOpen: true,
+    analyze: {done:0, current:'대기 중...'},
+    toast: '',
+    dragSrc: null
+  };
+  _timers = {};
+
+  hash(s){ let h=0; for(let i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))>>>0; } return h; }
+
+  tierFromScore(s){
+    s = Math.max(0, Math.min(3999, Math.round(s)));
+    const idx = Math.min(9, Math.floor(s/400));
+    const t = this.tiers[idx];
+    if(idx>=7){
+      const lp = Math.max(0, Math.round((s-2800)*0.7));
+      const short = ['M','GM','C'][idx-7];
+      return {color:t.color, short, text:t.name+' '+lp+'LP'};
+    }
+    const within = s%400;
+    const div = 4 - Math.floor(within/100);
+    const roman = ['I','II','III','IV'][div-1];
+    const lp = within%100;
+    return {color:t.color, short:roman, text:t.name+' '+roman+' '+lp+'LP'};
+  }
+
+  generate(name){
+    const h = this.hash(name);
+    const score = 2100 + h%800;
+    const mp = this.posList[h%5][0];
+    const champs = [0,1,2].map(k=> this.champPool[(h+k*7)%this.champPool.length]);
+    return {name, tag:'KR1', score, mainPos:mp, hue:h%360, form:{wr:45+h%22, trend:['up','flat','down'][h%3]}, champs};
+  }
+
+  makePlayer(name, tag){
+    const found = this.pool.find(p=>p.name===name);
+    const base = found ? {...found, champs:[...found.champs], form:{...found.form}} : this.generate(name);
+    return {...base, name, tag: tag || base.tag || 'KR1'};
+  }
+
+  setSlot(i, patch){
+    this.setState(s => { const slots=s.slots.slice(); slots[i]={...slots[i], ...patch}; return {slots}; });
+  }
+
+  commitSlot(i){
+    const q = (this.state.slots[i].query||'').trim();
+    if(!q){ this.setSlot(i,{status:'empty', data:null}); return; }
+    let name=q, tag='';
+    if(q.includes('#')){ const parts=q.split('#'); name=parts[0].trim(); tag=parts[1].trim(); }
+    const bad = name.length<2 || ['없음','없는유저','test','?','error'].includes(name.toLowerCase());
+    this.setSlot(i,{status:'loading'});
+    clearTimeout(this._timers[i]);
+    this._timers[i] = setTimeout(()=>{
+      if(bad) this.setSlot(i,{status:'error', data:null});
+      else this.setSlot(i,{status:'done', data:this.makePlayer(name, tag)});
+    }, 700 + Math.random()*700);
+  }
+
+  fillSaved(p){
+    const i = this.state.slots.findIndex(s => s.status==='empty' || (s.status==='error'));
+    if(i<0) return;
+    this.setSlot(i,{query:p.name+' #'+p.tag, status:'loading'});
+    setTimeout(()=> this.setSlot(i,{status:'done', data:this.makePlayer(p.name, p.tag)}), 500);
+  }
+
+  fillDemo(){
+    const picks = this.pool.slice(0,10);
+    this.setState({slots: picks.map(p=>({query:p.name+' #'+p.tag, status:'done', data:this.makePlayer(p.name,p.tag), pref:null}))});
+  }
+
+  clearAll(){
+    this.setState({slots: Array.from({length:10},()=>({query:'',status:'empty',data:null,pref:null}))});
+  }
+
+  togglePref(i, pos){
+    this.setState(s => { const slots=s.slots.slice(); const cur=slots[i]; slots[i]={...cur, pref: cur.pref===pos ? null : pos}; return {slots}; });
+  }
+
+  start(){
+    const players = this.state.slots.filter(s=>s.status==='done'&&s.data).map(s=>({...s.data, pref:s.pref}));
+    if(players.length<10) return;
+    this._analyzePlayers = players;
+    this.setState({screen:'analyzing', analyze:{done:0, current:'소환사 정보 조회 중...'}});
+    const texts=['최근 20게임 분석 중...','티어 · LP 확인 중...','주 포지션 파악 중...','최근 폼 계산 중...','챔피언 숙련도 분석 중...'];
+    let k=0;
+    const tick=()=>{
+      k++;
+      const nm = players[k-1] ? players[k-1].name : '';
+      this.setState(s=>({analyze:{done:k, current: (nm? nm+' · ':'')+texts[k%texts.length]}}));
+      if(k>=10){ setTimeout(()=>this.finish(players), 800); return; }
+      setTimeout(tick, 480+Math.random()*380);
+    };
+    setTimeout(tick, 550);
+  }
+
+  finish(players){
+    this.setState({screen:'result', teams:this.buildTeams(players, false)});
+  }
+
+  buildTeams(players, jitter){
+    const arr = players.map(p=>({p, key:p.score + (jitter?(Math.random()*420-210):0)}));
+    arr.sort((a,b)=>b.key-a.key);
+    const pat=['B','R','R','B','B','R','R','B','B','R'];
+    const blueP=[], redP=[];
+    arr.forEach((x,i)=> (pat[i]==='B'?blueP:redP).push(x.p));
+    return {blue:this.assign(blueP), red:this.assign(redP)};
+  }
+
+  assign(players){
+    const order=['TOP','JG','MID','AD','SUP'];
+    const res={};
+    const sorted=[...players].sort((a,b)=>b.score-a.score);
+    const used=new Set();
+    sorted.forEach(p=>{ const want=p.pref||p.mainPos; if(order.includes(want)&&!res[want]){ res[want]={player:p, honored:true}; used.add(p); } });
+    const remainP=sorted.filter(p=>!used.has(p));
+    const remainPos=order.filter(o=>!res[o]);
+    remainP.forEach((p,i)=>{ res[remainPos[i]]={player:p, honored:false}; });
+    return order.map(o=>({pos:o, player:res[o].player, honored:res[o].honored}));
+  }
+
+  rates(teams){
+    const sum=t=>t.reduce((a,c)=>a+c.player.score,0);
+    const form=t=>t.reduce((a,c)=>a+(c.player.form.wr-50),0);
+    const b=sum(teams.blue), r=sum(teams.red);
+    const bf=form(teams.blue), rf=form(teams.red);
+    const diff=(b-r)+(bf-rf)*5;
+    const p=1/(1+Math.exp(-diff/470));
+    let blue=Math.max(38, Math.min(62, Math.round(p*100)));
+    return {blue, red:100-blue, bScore:Math.round(b/5), rScore:Math.round(r/5), bForm:Math.round(bf/5+50), rForm:Math.round(rf/5+50)};
+  }
+
+  onDrop(team, idx){
+    const src=this.state.dragSrc;
+    if(!src){ return; }
+    if(src.team===team && src.idx===idx){ this.setState({dragSrc:null}); return; }
+    this.setState(s=>{
+      const teams={blue:s.teams.blue.map(x=>({...x})), red:s.teams.red.map(x=>({...x}))};
+      const a=teams[src.team][src.idx].player;
+      const b=teams[team][idx].player;
+      teams[src.team][src.idx].player=b;
+      teams[team][idx].player=a;
+      teams[src.team][src.idx].honored=((b.pref||b.mainPos)===teams[src.team][src.idx].pos);
+      teams[team][idx].honored=((a.pref||a.mainPos)===teams[team][idx].pos);
+      return {teams, dragSrc:null};
+    });
+  }
+
+  reshuffle(){
+    const players=[...this.state.teams.blue, ...this.state.teams.red].map(c=>c.player);
+    this.setState({teams:this.buildTeams(players, true)});
+    this.flashToast('새로운 조합으로 다시 짰습니다');
+  }
+
+  copyResult(){
+    const t=this.state.teams; const r=this.rates(t);
+    const line=c=>`  ${{'TOP':'탑','JG':'정글','MID':'미드','AD':'원딜','SUP':'서폿'}[c.pos]} ${c.player.name}#${c.player.tag} (${this.tierFromScore(c.player.score).text})`;
+    const txt=`⚔️ 내전 팀 매칭 결과\n\n🔵 BLUE (예상 ${r.blue}%)\n${t.blue.map(line).join('\n')}\n\n🔴 RED (예상 ${r.red}%)\n${t.red.map(line).join('\n')}\n\n— PENTABALANCE`;
+    try { navigator.clipboard.writeText(txt); } catch(e){}
+    this.flashToast('디스코드용 텍스트를 복사했습니다');
+  }
+
+  reset(){ this.setState({screen:'input', teams:null, dragSrc:null}); }
+
+  flashToast(msg){
+    this.setState({toast:msg});
+    clearTimeout(this._toast);
+    this._toast=setTimeout(()=>this.setState({toast:''}), 2200);
+  }
+
+  posMeta(key){ return this.posList.find(p=>p[0]===key); }
+  posLabel(key){ const m=this.posMeta(key); return m?m[1]:key; }
+  posColor(key){ const m=this.posMeta(key); return m?m[2]:'#8b93a7'; }
+
+  reasonText(pos, player, honored, isTop){
+    const posK=this.posLabel(pos);
+    const parts=[ honored ? posK+' 주포지션' : posK+' 부포지션 소화' ];
+    if(player.form.trend==='up') parts.push('최근 폼 상승');
+    else if(player.form.trend==='down') parts.push('폼 하락, 밸런싱 반영');
+    else if(isTop) parts.push('팀 내 최상위 MMR');
+    else parts.push('안정적인 폼 유지');
+    return parts.join(' · ');
+  }
+
+  champStyle(name){ const h=this.hash(name)%360; return {background:`linear-gradient(135deg, hsl(${h} 44% 42%), hsl(${h} 46% 28%))`}; }
+
+  cardVM(entry, team, idx, topScore){
+    const p=entry.player; const t=this.tierFromScore(p.score);
+    const accent = team==='blue' ? '#5aa9ff' : '#f0656a';
+    const dragging = this.state.dragSrc && this.state.dragSrc.team===team && this.state.dragSrc.idx===idx;
+    const bg = team==='blue'
+      ? 'linear-gradient(100deg, rgba(47,95,176,.16), rgba(15,20,34,.4))'
+      : 'linear-gradient(260deg, rgba(176,53,58,.16), rgba(15,20,34,.4))';
+    const cardStyle = `display:flex;align-items:center;gap:13px;padding:13px 15px;border-radius:13px;background:${bg};`
+      + `border:1px solid ${dragging?accent:(team==='blue'?'rgba(90,169,255,.28)':'rgba(240,101,106,.28)')};`
+      + `border-${team==='blue'?'left':'right'}:3px solid ${accent};cursor:grab;transition:border-color .15s,transform .15s,opacity .15s;`
+      + (dragging?'opacity:.5;transform:scale(.99);':'');
+    return {
+      key: team+idx,
+      name: p.name, tag: '#'+(p.tag||'KR1'), letter: (p.name[0]||'?'),
+      avatarStyle: `background:linear-gradient(135deg, hsl(${p.hue} 42% 36%), hsl(${p.hue} 46% 22%));`,
+      tierText: t.text, tierEmblem: `background:${t.color};`,
+      pos: entry.pos, posLabel: this.posLabel(entry.pos), posColor: this.posColor(entry.pos),
+      posEmblem: `background:linear-gradient(140deg, ${this.posColor(entry.pos)}, ${this.posColor(entry.pos)}bb);`,
+      wr: p.form.wr, wrColor: p.form.wr>=55?'#4fd18a':(p.form.wr<50?'#f0797d':'#c8cede'),
+      champs: p.champs.slice(0,3).map(name=>({name, abbr:(name[0]||'')+(name[1]||''), style:this.styleStr(this.champStyle(name))})),
+      reason: this.reasonText(entry.pos, p, entry.honored, p.score===topScore),
+      cardStyle,
+      onDragStart: ()=>this.setState({dragSrc:{team,idx}}),
+      onDragOver: (e)=>e.preventDefault(),
+      onDrop: ()=>this.onDrop(team, idx),
+      onDragEnd: ()=>this.setState({dragSrc:null})
+    };
+  }
+
+  styleStr(obj){ return Object.entries(obj).map(([k,v])=>k+':'+v).join(';')+';'; }
+
+  renderVals(){
+    const st=this.state;
+    const filledCount = st.slots.filter(s=>s.status==='done').length;
+
+    // slot VMs
+    const slots = st.slots.map((s,i)=>{
+      const d=s.data;
+      const t = d ? this.tierFromScore(d.score) : null;
+      const active = s.status==='done';
+      const border = s.status==='error' ? 'rgba(240,69,75,.5)'
+        : s.status==='done' ? 'rgba(216,180,99,.35)'
+        : s.status==='loading' ? 'rgba(216,180,99,.3)' : '#222b42';
+      return {
+        num: String(i+1).padStart(2,'0'),
+        query: s.query,
+        isEmpty: s.status==='empty', isLoading: s.status==='loading',
+        isError: s.status==='error', isDone: s.status==='done',
+        cardStyle: `background:${active?'linear-gradient(160deg,#141b2b,#0f1523)':'#0f1523'};border:1px solid ${border};border-radius:13px;padding:14px 15px;transition:border-color .2s;`,
+        avatarStyle: d ? `background:linear-gradient(135deg, hsl(${d.hue} 42% 36%), hsl(${d.hue} 46% 22%));` : '',
+        letter: d ? (d.name[0]||'?') : '',
+        pname: d ? d.name : '',
+        tierText: t ? t.text : '',
+        tierEmblem: t ? `background:${t.color};` : '',
+        score: d ? d.score : '',
+        posLabel: d ? this.posLabel((s.pref||d.mainPos)) : '',
+        posColor: d ? this.posColor((s.pref||d.mainPos)) : '#8b93a7',
+        onInput: (e)=>this.setSlot(i,{query:e.target.value}),
+        onKey: (e)=>{ if(e.key==='Enter'){ e.target.blur(); this.commitSlot(i); } },
+        onCommit: ()=>this.commitSlot(i),
+        posButtons: this.posList.map(([key,label])=>{
+          const sel = (s.pref||(d&&d.mainPos))===key;
+          const isPref = s.pref===key;
+          return {
+            abbr: key==='JG'?'JG':key==='SUP'?'SP':key,
+            label,
+            onClick: ()=>this.togglePref(i, key),
+            style: `width:24px;height:22px;border-radius:6px;font-size:9px;font-weight:700;font-family:'IBM Plex Mono';cursor:pointer;padding:0;`
+              + `border:1px solid ${isPref?this.posColor(key):'#28324c'};`
+              + `background:${isPref?this.posColor(key)+'22':'#0e1524'};`
+              + `color:${sel?this.posColor(key):'#5c6884'};`
+          };
+        })
+      };
+    });
+
+    // saved VMs
+    const savedNames = new Set(st.slots.filter(s=>s.data).map(s=>s.data.name));
+    const saved = this.pool.map(p=>{
+      const t=this.tierFromScore(p.score);
+      const used=savedNames.has(p.name);
+      return {
+        name: p.name, letter: p.name[0], tierText:t.text, posLabel:this.posLabel(p.mainPos),
+        avatarStyle:`background:linear-gradient(135deg, hsl(${p.hue} 42% 36%), hsl(${p.hue} 46% 22%));`,
+        onClick: ()=>this.fillSaved(p),
+        style:`display:flex;align-items:center;gap:9px;width:100%;padding:7px 8px;border-radius:9px;cursor:${used?'default':'pointer'};`
+          +`background:${used?'#0c1120':'transparent'};border:1px solid ${used?'#1a2236':'transparent'};opacity:${used?.55:1};transition:background .15s;`,
+        badge: used?'추가됨':'+',
+        badgeStyle: used
+          ? `font-size:10px;color:#4fd18a;font-weight:600;flex:none;`
+          : `width:20px;height:20px;border-radius:6px;background:#1a2236;color:#8b93a7;font-size:14px;display:flex;align-items:center;justify-content:center;flex:none;`
+      };
+    });
+
+    const startDisabled = filledCount<10;
+    const ctaStyle = startDisabled
+      ? `display:flex;align-items:center;gap:14px;white-space:nowrap;background:#1a2033;border:1px solid #262f45;color:#4a5573;padding:16px 54px;border-radius:13px;font-size:17px;font-weight:700;cursor:not-allowed;font-family:'Rajdhani','Noto Sans KR';letter-spacing:.5px;`
+      : `display:flex;align-items:center;gap:14px;white-space:nowrap;background:linear-gradient(140deg,#e6c574,#c19a3f);border:none;color:#0b0f18;padding:16px 60px;border-radius:13px;font-size:18px;font-weight:700;cursor:pointer;font-family:'Rajdhani','Noto Sans KR';letter-spacing:.5px;box-shadow:0 8px 30px rgba(216,180,99,.25);`;
+
+    const out = {
+      isInput: st.screen==='input', isAnalyzing: st.screen==='analyzing', isResult: st.screen==='result',
+      filledCount, slots, saved, startDisabled, ctaStyle,
+      onClearAll: ()=>this.clearAll(), onFillDemo: ()=>this.fillDemo(), onStart: ()=>this.start(),
+      inputFocus: {borderColor:'#d8b463', background:'#111a2c'},
+      btnGhostHover: {borderColor:'#3a445e', color:'#b6c0d6'},
+      btnHover: {borderColor:'#3a445e', background:'#1a2236'},
+      ctaHover: {filter:'brightness(1.06)'},
+      toast: st.toast
+    };
+
+    // analyzing
+    if(st.screen==='analyzing'){
+      const done=st.analyze.done;
+      const players=this._analyzePlayers||[];
+      out.analyzeCurrent = st.analyze.current;
+      out.analyzePct = Math.round(done/10*100);
+      out.analyzeBarStyle = `width:${done/10*100}%;`;
+      out.analyzeList = players.map((p,i)=>{
+        const isDone=i<done, isCur=i===done;
+        return {
+          name: p.name, letter:p.name[0],
+          avatarStyle:`background:linear-gradient(135deg, hsl(${p.hue} 42% 36%), hsl(${p.hue} 46% 22%));`+(isDone?'':'filter:grayscale(.6);opacity:.7;'),
+          rowStyle:`display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:9px;transition:background .2s;`+(isCur?'background:rgba(216,180,99,.07);':''),
+          statusText: isDone?'완료':(isCur?'분석 중':'대기'),
+          statusStyle: isDone
+            ? `font-size:11.5px;color:#4fd18a;font-weight:600;display:flex;align-items:center;gap:5px;`
+            : isCur
+            ? `font-size:11.5px;color:#d8b463;font-weight:600;animation:pulse 1.2s infinite;`
+            : `font-size:11.5px;color:#55617a;`
+        };
+      });
+    }
+
+    // result
+    if(st.screen==='result' && st.teams){
+      const t=st.teams; const r=this.rates(t);
+      const blueTop=Math.max(...t.blue.map(c=>c.player.score));
+      const redTop=Math.max(...t.red.map(c=>c.player.score));
+      out.blueCards=t.blue.map((e,i)=>this.cardVM(e,'blue',i,blueTop));
+      out.redCards=t.red.map((e,i)=>this.cardVM(e,'red',i,redTop));
+      out.bluePct=r.blue; out.redPct=r.red;
+      out.blueGaugeStyle=`width:${r.blue}%;`;
+      const gap=Math.abs(r.blue-r.red);
+      out.balanceVerdict = gap<=4 ? '⚖ 매우 균형 잡힌 매치 — 백중세 예상' : gap<=8 ? '살짝 기울지만 해볼 만한 매치' : '한쪽이 다소 유리 — 스왑으로 조정해 보세요';
+      out.bScore=r.bScore; out.rScore=r.rScore;
+      const maxS=Math.max(r.bScore,r.rScore);
+      out.bScoreBar=`width:${r.bScore/maxS*100}%;`; out.rScoreBar=`width:${r.rScore/maxS*100}%;`;
+      const sgap=Math.abs(r.bScore-r.rScore);
+      out.scoreVerdict = sgap<40 ? `평균 MMR 차이 ${sgap}점 — 거의 동일` : `평균 MMR 차이 ${sgap}점 (${r.bScore>r.rScore?'블루':'레드'} 우세)`;
+      out.bForm=r.bForm; out.rForm=r.rForm;
+      const maxF=Math.max(r.bForm,r.rForm);
+      out.bFormBar=`height:${r.bForm/maxF*70}px;`; out.rFormBar=`height:${r.rForm/maxF*70}px;`;
+      out.formVerdict = Math.abs(r.bForm-r.rForm)<3 ? '양 팀 최근 폼 대등' : (r.bForm>r.rForm?'블루':'레드')+'팀 최근 폼이 조금 더 좋음';
+      const honored=[...t.blue,...t.red].filter(c=>c.honored).length;
+      out.honoredPct=Math.round(honored/10*100);
+      out.coverage=['TOP','JG','MID','AD','SUP'].map(pos=>{
+        const b=t.blue.find(c=>c.pos===pos), rd=t.red.find(c=>c.pos===pos);
+        const dot=(c,col)=>`width:8px;height:8px;border-radius:50%;flex:none;background:${c.honored?col:'#3a445e'};`;
+        return {label:this.posLabel(pos), blueName:b.player.name, redName:rd.player.name, blueDot:dot(b,'#5aa9ff'), redDot:dot(rd,'#f0656a')};
+      });
+      out.summaryOpen=st.summaryOpen;
+      out.summaryChevron= st.summaryOpen?'transform:rotate(0deg);':'transform:rotate(-90deg);';
+      out.onToggleSummary=()=>this.setState(s=>({summaryOpen:!s.summaryOpen}));
+      out.onReshuffle=()=>this.reshuffle();
+      out.onCopy=()=>this.copyResult();
+      out.onReset=()=>this.reset();
+    }
+
+    return out;
+  }
+}
+</script>
+</body>
+</html>

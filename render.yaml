@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: pentabalance
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build && npm --prefix server install && npm --prefix server run build
+    startCommand: npm --prefix server run start
+    envVars:
+      - key: RIOT_API_KEY
+        sync: false
+      - key: DEFAULT_PLATFORM
+        value: kr
+      - key: DEFAULT_REGIONAL
+        value: asia
+      - key: NODE_VERSION
+        value: 20
