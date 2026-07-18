@@ -87,6 +87,15 @@ export function useSlots(region: string) {
     setSlots(makeSlots());
   }, []);
 
+  /** Empties one filled/errored slot without touching the others. */
+  const clearSlot = useCallback(
+    (i: number) => {
+      requestIds.current[i]++;
+      patchSlot(i, { query: '', status: 'empty', data: null, pref: null, errorMessage: undefined });
+    },
+    [patchSlot],
+  );
+
   const fillFromSaved = useCallback(
     (saved: SavedPlayer) => {
       const idx = slotsRef.current.findIndex((s) => s.status === 'empty' || s.status === 'error');
@@ -115,5 +124,5 @@ export function useSlots(region: string) {
 
   const filledCount = useMemo(() => slots.filter((s) => s.status === 'done').length, [slots]);
 
-  return { slots, setQuery, commit, togglePref, clearAll, fillFromSaved, fillManyFromSaved, filledCount };
+  return { slots, setQuery, commit, togglePref, clearAll, clearSlot, fillFromSaved, fillManyFromSaved, filledCount };
 }

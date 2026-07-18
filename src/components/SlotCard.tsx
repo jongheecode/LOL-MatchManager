@@ -12,12 +12,14 @@ export function SlotCard({
   onQueryChange,
   onCommit,
   onTogglePref,
+  onClear,
 }: {
   index: number;
   slot: Slot;
   onQueryChange: (v: string) => void;
   onCommit: () => void;
   onTogglePref: (pos: Position) => void;
+  onClear: () => void;
 }) {
   const [focused, setFocused] = useState(false);
   const { status, data } = slot;
@@ -90,6 +92,29 @@ export function SlotCard({
           }}
         />
         <PositionButtons pref={slot.pref} mainPos={data?.mainPos ?? null} onToggle={(pos) => onTogglePref(pos)} />
+        {status !== 'empty' && (
+          <button
+            type="button"
+            title="이 슬롯 비우기"
+            onClick={onClear}
+            style={{
+              flex: 'none',
+              width: 22,
+              height: 22,
+              borderRadius: 6,
+              background: 'transparent',
+              border: 'none',
+              color: '#55617a',
+              fontSize: 14,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            ×
+          </button>
+        )}
       </div>
 
       <div style={{ marginTop: 10, minHeight: 44 }}>

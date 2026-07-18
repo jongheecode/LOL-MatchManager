@@ -10,6 +10,7 @@ export function InputScreen({
   onCommit,
   onTogglePref,
   onClearAll,
+  onClearSlot,
   saved,
   onPickSaved,
   onFillMany,
@@ -22,6 +23,7 @@ export function InputScreen({
   onCommit: (i: number) => void;
   onTogglePref: (i: number, pos: Position) => void;
   onClearAll: () => void;
+  onClearSlot: (i: number) => void;
   saved: SavedPlayer[];
   onPickSaved: (p: SavedPlayer) => void;
   onFillMany: () => void;
@@ -71,6 +73,7 @@ export function InputScreen({
               onQueryChange={(v) => onQueryChange(i, v)}
               onCommit={() => onCommit(i)}
               onTogglePref={(pos) => onTogglePref(i, pos)}
+              onClear={() => onClearSlot(i)}
             />
           ))}
         </div>

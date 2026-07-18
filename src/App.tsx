@@ -18,7 +18,7 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>('input');
   const [region, setRegion] = useState('kr');
 
-  const { slots, setQuery, commit, togglePref, clearAll, fillFromSaved, fillManyFromSaved, filledCount } = useSlots(region);
+  const { slots, setQuery, commit, togglePref, clearAll, clearSlot, fillFromSaved, fillManyFromSaved, filledCount } = useSlots(region);
   const [saved, setSaved] = useState(() => getSavedPlayers());
   const [roster, setRoster] = useState<SavedPlayer[]>([]);
 
@@ -207,6 +207,7 @@ export default function App() {
           onCommit={commit}
           onTogglePref={togglePref}
           onClearAll={clearAll}
+          onClearSlot={clearSlot}
           saved={displaySaved}
           onPickSaved={fillFromSaved}
           onFillMany={() => fillManyFromSaved(displaySaved)}
