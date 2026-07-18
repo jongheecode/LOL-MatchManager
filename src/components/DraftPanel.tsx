@@ -107,7 +107,7 @@ export function DraftPanel({ teams, open, onToggle }: { teams: Teams; open: bool
           </div>
           {!anyDanger && (
             <div style={{ gridColumn: '1 / -1', fontSize: 11.5, color: '#55617a', marginTop: 4 }}>
-              표본(최근 10경기) 안에서 3판 이상·승률 60% 이상인 위협적인 카드가 없어요. 각 팀의 "추천 픽"만 참고하세요.
+              표본(최근 전적) 안에서 3판 이상·승률 60% 이상인 위협적인 카드가 없어요. 각 팀의 "추천 픽"만 참고하세요.
             </div>
           )}
         </div>

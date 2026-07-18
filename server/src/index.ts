@@ -57,7 +57,7 @@ app.get('/api/lookup', async (req, res) => {
         .json({ ok: false, code: 'NOT_FOUND', message: '존재하지 않는 소환사입니다. 닉네임#태그를 확인하세요' });
     }
     const player = await buildPlayerProfile(DEFAULT_PLATFORM, DEFAULT_REGIONAL, account, {
-      matchCount: 5,
+      matchCount: 10,
       includeMastery: false,
       includeLive: false,
     });
@@ -99,7 +99,7 @@ app.post('/api/analyze', async (req, res) => {
         DEFAULT_REGIONAL,
         { puuid: p.puuid, gameName: p.name, tagLine: p.tag },
         {
-          matchCount: 10,
+          matchCount: 20,
           includeMastery: true,
           includeLive: true,
           onPhase: (phase) => write({ type: 'phase', index: i, name: p.name, phase }),

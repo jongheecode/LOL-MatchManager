@@ -74,8 +74,12 @@ export async function buildPlayerProfile(
     mainPos = POSITION_FALLBACK[hashStr(account.gameName.toLowerCase()) % 5];
   }
 
+  // Champion stats are scoped to games actually played in mainPos — otherwise a flex player's
+  // off-role games (e.g. a MID champ from a filled-JG game) can surface as their "main champion"
+  // while the card shows a different lane, which reads as a mismatch.
+  const mainPosRecords = posCounts.size > 0 ? records.filter((r) => fromRiotTeamPosition(r.teamPosition) === mainPos) : records;
   const champStats = new Map<string, { games: number; wins: number }>();
-  for (const r of records) {
+  for (const r of mainPosRecords) {
     const s = champStats.get(r.championName) ?? { games: 0, wins: 0 };
     s.games += 1;
     if (r.win) s.wins += 1;
