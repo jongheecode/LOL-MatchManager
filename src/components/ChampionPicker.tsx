@@ -9,6 +9,7 @@ export function ChampionPicker({
   onSelect,
   accent,
   align,
+  needsPick,
 }: {
   allChampions: ChampSummary[];
   champPool: { champ: ChampSummary; games: number; winRate: number }[];
@@ -16,6 +17,8 @@ export function ChampionPicker({
   onSelect: (champ: ChampSummary | null) => void;
   accent: string;
   align: 'left' | 'right';
+  /** No real data for this slot at all — nudge the user to pick one manually instead of guessing. */
+  needsPick?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -66,10 +69,11 @@ export function ChampionPicker({
           alignItems: 'center',
           gap: 6,
           cursor: 'pointer',
-          background: selected ? `${accent}1c` : '#0b1120',
-          border: `1px solid ${selected ? accent : '#232c44'}`,
+          background: selected ? `${accent}1c` : needsPick ? 'rgba(240,121,125,.1)' : '#0b1120',
+          border: `1px solid ${selected ? accent : needsPick ? '#f0797d' : '#232c44'}`,
           borderRadius: 20,
           padding: selected ? '3px 10px 3px 3px' : '5px 12px',
+          animation: needsPick ? 'pulse 1.6s ease-in-out infinite' : undefined,
         }}
       >
         {selected ? (
@@ -80,6 +84,8 @@ export function ChampionPicker({
               {selectedStat ? `${selectedStat.winRate}%` : '예상'}
             </span>
           </>
+        ) : needsPick ? (
+          <span style={{ fontSize: 10.5, color: '#f0797d', fontWeight: 600 }}>⚠ 챔피언 선택 필요 (이 라인 전적 없음)</span>
         ) : (
           <span style={{ fontSize: 10.5, color: '#8b93a7' }}>챔피언 선택 +</span>
         )}

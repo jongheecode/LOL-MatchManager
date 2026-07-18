@@ -62,37 +62,45 @@ export async function buildPlayerProfile(
     .filter((p): p is RiotMatchParticipant => !!p);
 
   phase('주 포지션 파악 중...');
-  const posCounts = new Map<Position, number>();
+  // Group every sampled game by the lane it was actually played in — not just the single most
+  // common lane — so that a player who got slotted into a *different* lane this draft (their
+  // own explicit position preference, or a leftover-fill) can still show real champion data for
+  // THAT lane instead of leaking in champs from their main lane (e.g. "ADC" showing a jungle champ).
+  const byPos = new Map<Position, RiotMatchParticipant[]>();
   for (const r of records) {
     const pos = fromRiotTeamPosition(r.teamPosition);
-    if (pos) posCounts.set(pos, (posCounts.get(pos) ?? 0) + 1);
+    if (!pos) continue;
+    const arr = byPos.get(pos) ?? [];
+    arr.push(r);
+    byPos.set(pos, arr);
   }
   let mainPos: Position;
-  if (posCounts.size > 0) {
-    mainPos = [...posCounts.entries()].sort((a, b) => b[1] - a[1])[0][0];
+  if (byPos.size > 0) {
+    mainPos = [...byPos.entries()].sort((a, b) => b[1].length - a[1].length)[0][0];
   } else {
     mainPos = POSITION_FALLBACK[hashStr(account.gameName.toLowerCase()) % 5];
   }
 
-  // Champion stats are scoped to games actually played in mainPos — otherwise a flex player's
-  // off-role games (e.g. a MID champ from a filled-JG game) can surface as their "main champion"
-  // while the card shows a different lane, which reads as a mismatch.
-  const mainPosRecords = posCounts.size > 0 ? records.filter((r) => fromRiotTeamPosition(r.teamPosition) === mainPos) : records;
-  const champStats = new Map<string, { games: number; wins: number }>();
-  for (const r of mainPosRecords) {
-    const s = champStats.get(r.championName) ?? { games: 0, wins: 0 };
-    s.games += 1;
-    if (r.win) s.wins += 1;
-    champStats.set(r.championName, s);
-  }
+  const buildPool = (recs: RiotMatchParticipant[]): Player['champPool'] => {
+    const stats = new Map<string, { games: number; wins: number }>();
+    for (const r of recs) {
+      const s = stats.get(r.championName) ?? { games: 0, wins: 0 };
+      s.games += 1;
+      if (r.win) s.wins += 1;
+      stats.set(r.championName, s);
+    }
+    return [...stats.entries()]
+      .map(([name, s]) => ({ champ: championSummary(name), games: s.games, winRate: Math.round((s.wins / s.games) * 100) }))
+      .sort((a, b) => b.games - a.games);
+  };
+
   // 표본(최근 전적) 안에서 실제로 플레이한 챔피언별 승률 — 추가 API 호출 없이 이미 받아온 매치 상세에서 바로 집계.
-  // 밴픽 추천과 "이 챔피언으로 픽했을 때 팀 승률" 시뮬레이션에 그대로 재사용된다.
-  const champPool: Player['champPool'] = [...champStats.entries()]
-    .map(([name, s]) => ({ champ: championSummary(name), games: s.games, winRate: Math.round((s.wins / s.games) * 100) }))
-    .sort((a, b) => b.games - a.games);
+  // 밴픽 추천과 "이 챔피언으로 픽했을 때 팀 승률" 시뮬레이션에 라인별로 정확히 재사용된다.
+  const posChampPool: Player['posChampPool'] = {};
+  for (const [pos, recs] of byPos) posChampPool[pos] = buildPool(recs);
 
-  const champs: ChampSummary[] = champPool.slice(0, 3).map((c) => c.champ);
-
+  const champPool: Player['champPool'] = posChampPool[mainPos] ?? [];
+  let champs: ChampSummary[] = champPool.slice(0, 3).map((c) => c.champ);
   const dangerPicks: Player['dangerPicks'] = champPool
     .filter((d) => d.games >= 3 && d.winRate >= 60)
     .sort((a, b) => b.winRate - a.winRate || b.games - a.games)
@@ -111,8 +119,13 @@ export async function buildPlayerProfile(
     else if (recentWR - olderWR <= -10) trend = 'down';
   }
 
+  // Riot's API has no "season stats" endpoint (that's what third-party sites crawl and store
+  // themselves) — but Champion Mastery is an official, single-call, career-long signal of who a
+  // player really mains. When the sampled recent games in their main lane are too thin to trust
+  // (fresh account, long break, mostly ARAM, etc.), lean on mastery instead of a noisy 1-2 game sample.
+  const sparse = champPool.length === 0 || (champPool[0]?.games ?? 0) < 3;
   let masteryChamps: MasteryChamp[] = [];
-  if (opts.includeMastery) {
+  if (opts.includeMastery || sparse) {
     phase('챔피언 숙련도 분석 중...');
     const top = await getMasteryTop(platform, puuid, 3);
     masteryChamps = top.map((m) => {
@@ -126,16 +139,22 @@ export async function buildPlayerProfile(
     liveGame = await getActiveGame(platform, puuid);
   }
 
-  // Sparse recent-match history (new accounts, ARAM-only players) leaves champs short;
-  // top mastery champs are a reasonable stand-in for "signature champions" in that case.
-  if (champs.length < 3 && masteryChamps.length) {
-    const have = new Set(champs.map((c) => c.name));
-    for (const m of masteryChamps) {
-      if (champs.length >= 3) break;
-      if (have.has(m.name)) continue;
-      champs.push({ name: m.name, iconId: m.iconId });
-      have.add(m.name);
-    }
+  // When the recent-match sample is too thin to trust, lead with career mastery instead (still
+  // filling any remaining slots from the thin match sample); otherwise mastery only fills gaps
+  // left by a short match-based list.
+  if (masteryChamps.length) {
+    const merge = (primary: ChampSummary[], secondary: ChampSummary[]) => {
+      const out = [...primary];
+      const have = new Set(out.map((c) => c.name));
+      for (const c of secondary) {
+        if (out.length >= 3) break;
+        if (have.has(c.name)) continue;
+        out.push(c);
+        have.add(c.name);
+      }
+      return out;
+    };
+    champs = sparse ? merge(masteryChamps, champs) : merge(champs, masteryChamps);
   }
 
   return {
@@ -151,6 +170,7 @@ export async function buildPlayerProfile(
     form: { wr, trend },
     champs,
     champPool,
+    posChampPool,
     masteryChamps,
     dangerPicks,
     liveGame,

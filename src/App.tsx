@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { ChampSummary, GameResult, Player, Screen, Teams } from './types';
+import type { ChampSummary, GameResult, Player, SavedPlayer, Screen, Teams } from './types';
 import { useSlots } from './hooks/useSlots';
-import { fetchMeta, fetchChampions, analyzeStream, type AnalyzePlayerInput } from './lib/api';
+import { fetchMeta, fetchChampions, fetchRoster, analyzeStream, type AnalyzePlayerInput } from './lib/api';
 import { setDdragonVersion } from './lib/avatar';
-import { forgetPlayer, getSavedPlayers } from './lib/storage';
-import { buildTeams, rates as computeRates, swapPlayers, type ChampPicks, type TeamSlotRef } from './lib/balance';
+import { forgetPlayer, getSavedPlayers, toSavedPlayer } from './lib/storage';
+import { buildTeams, needsManualPick, rates as computeRates, swapPlayers, type ChampPicks, type TeamSlotRef } from './lib/balance';
 import { simulateGame } from './lib/gameSim';
 import { InputScreen } from './screens/InputScreen';
 import { AnalyzingScreen, type AnalyzeRow } from './screens/AnalyzingScreen';
@@ -20,6 +20,7 @@ export default function App() {
 
   const { slots, setQuery, commit, togglePref, clearAll, fillFromSaved, fillManyFromSaved, filledCount } = useSlots(region);
   const [saved, setSaved] = useState(() => getSavedPlayers());
+  const [roster, setRoster] = useState<SavedPlayer[]>([]);
 
   const [teams, setTeams] = useState<Teams | null>(null);
   const [dragSrc, setDragSrc] = useState<TeamSlotRef | null>(null);
@@ -50,11 +51,21 @@ export default function App() {
       .catch(() => {
         /* champion picker just shows an empty list until this succeeds on a later mount */
       });
+    fetchRoster()
+      .then((players) => setRoster(players.map((p) => toSavedPlayer(p, 'kr', { pinned: true }))))
+      .catch(() => {
+        /* the shared roster is a convenience, not a requirement — sidebar still works without it */
+      });
   }, []);
 
   useEffect(() => {
     setSaved(getSavedPlayers());
   }, [slots]);
+
+  const displaySaved = useMemo(() => {
+    const rosterKeys = new Set(roster.map((p) => `${p.name}#${p.tag}`));
+    return [...roster, ...saved.filter((p) => !rosterKeys.has(`${p.name}#${p.tag}`))];
+  }, [roster, saved]);
 
   const flashToast = (msg: string) => {
     setToast(msg);
@@ -150,6 +161,11 @@ export default function App() {
 
   const startGame = () => {
     if (!teams || !rates) return;
+    const blockers = [...teams.blue, ...teams.red].filter((e) => needsManualPick(e, champPicks));
+    if (blockers.length > 0) {
+      flashToast(`이 라인 전적이 없는 선수는 챔피언을 직접 선택해주세요: ${blockers.map((e) => e.player.name).join(', ')}`);
+      return;
+    }
     setGameResult(simulateGame(teams, rates, champPicks));
     setScreen('game');
   };
@@ -182,9 +198,9 @@ export default function App() {
           onCommit={commit}
           onTogglePref={togglePref}
           onClearAll={clearAll}
-          saved={saved}
+          saved={displaySaved}
           onPickSaved={fillFromSaved}
-          onFillMany={() => fillManyFromSaved(saved)}
+          onFillMany={() => fillManyFromSaved(displaySaved)}
           onDeleteSaved={deleteSaved}
           onStart={start}
         />

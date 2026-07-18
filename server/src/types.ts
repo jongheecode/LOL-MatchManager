@@ -29,8 +29,10 @@ export interface Player {
   hue: number;
   form: { wr: number; trend: Trend };
   champs: ChampSummary[];
-  /** Every champion seen in the sampled recent matches, with that player's real games/winRate on it. */
+  /** Champion pool for the player's detected main position only (posChampPool[mainPos]). */
   champPool: { champ: ChampSummary; games: number; winRate: number }[];
+  /** Champion pool broken out per lane actually played in the sample — use posChampPool[entry.pos] for any drafted slot, since it may differ from mainPos (explicit pref, or an off-role fill). */
+  posChampPool: Partial<Record<Position, { champ: ChampSummary; games: number; winRate: number }[]>>;
   masteryChamps: MasteryChamp[];
   dangerPicks: { champ: ChampSummary; games: number; winRate: number }[];
   liveGame: boolean;

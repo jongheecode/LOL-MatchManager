@@ -97,7 +97,8 @@ export function SavedPlayerList({
               >
                 <Avatar name={sv.name} hue={sv.hue} size={30} radius={7} fontSize={13} />
                 <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-                  <div style={{ fontSize: 12.5, color: '#dbe1ee', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12.5, color: '#dbe1ee', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {sv.pinned && <span title="고정된 멤버">📌</span>}
                     {sv.name}
                   </div>
                   <div style={{ fontFamily: "'IBM Plex Mono'", fontSize: 10.5, color: '#7f8aa3' }}>
@@ -125,31 +126,33 @@ export function SavedPlayerList({
                   </span>
                 )}
               </button>
-              <button
-                type="button"
-                title="저장된 플레이어에서 삭제"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(sv);
-                }}
-                style={{
-                  flex: 'none',
-                  width: 22,
-                  height: 22,
-                  marginRight: 6,
-                  borderRadius: 6,
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#4a5573',
-                  fontSize: 13,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                ×
-              </button>
+              {!sv.pinned && (
+                <button
+                  type="button"
+                  title="저장된 플레이어에서 삭제"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(sv);
+                  }}
+                  style={{
+                    flex: 'none',
+                    width: 22,
+                    height: 22,
+                    marginRight: 6,
+                    borderRadius: 6,
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#4a5573',
+                    fontSize: 13,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  ×
+                </button>
+              )}
             </div>
           );
         })}

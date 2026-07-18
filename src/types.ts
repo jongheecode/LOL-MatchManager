@@ -35,8 +35,10 @@ export interface Player {
   hue: number;
   form: { wr: number; trend: Trend };
   champs: ChampSummary[];
-  /** Every champion seen in the sampled recent matches, with that player's real games/winRate on it — feeds the champion picker. */
+  /** Champion pool for the player's detected main position only (posChampPool[mainPos]). */
   champPool: { champ: ChampSummary; games: number; winRate: number }[];
+  /** Champion pool broken out per lane actually played in the sample — use posChampPool[entry.pos] for any drafted slot, since it may differ from mainPos (explicit pref, or an off-role fill). */
+  posChampPool: Partial<Record<Position, { champ: ChampSummary; games: number; winRate: number }[]>>;
   masteryChamps: MasteryChamp[];
   /** Champions this player has a hot hand with in the sampled recent games (>=3 games, >=60% win rate) — worth banning. */
   dangerPicks: { champ: ChampSummary; games: number; winRate: number }[];
@@ -77,25 +79,6 @@ export interface Rates {
 
 export type Screen = 'input' | 'analyzing' | 'result' | 'game';
 
-export interface PlayerGameStat {
-  puuid: string;
-  pos: Position;
-  team: 'blue' | 'red';
-  champ: ChampSummary;
-  kills: number;
-  deaths: number;
-  assists: number;
-  cs: number;
-  win: boolean;
-}
-
-/** A just-for-fun simulated match, weighted by the computed win rate — not a real Riot game. */
-export interface GameResult {
-  winner: 'blue' | 'red';
-  stats: PlayerGameStat[];
-  mvpPuuid: string;
-}
-
 /** A locally-remembered player, kept in localStorage so the sidebar has real history instead of mock data. */
 export interface SavedPlayer {
   name: string;
@@ -105,6 +88,8 @@ export interface SavedPlayer {
   mainPos: Position;
   hue: number;
   lastUsed: number;
+  /** From the server-side shared roster, not this browser's localStorage — can't be deleted locally. */
+  pinned?: boolean;
 }
 
 /** Backend lookup response for a single Riot ID (used while typing in the input screen). */
@@ -132,4 +117,39 @@ export interface AnalyzeRequestPlayer {
   name: string;
   tag: string;
   pref: Position | null;
+}
+
+export interface PlayerGameStat {
+  puuid: string;
+  pos: Position;
+  team: 'blue' | 'red';
+  champ: ChampSummary;
+  kills: number;
+  deaths: number;
+  assists: number;
+  cs: number;
+  gold: number;
+  damage: number;
+  win: boolean;
+}
+
+/** One kill in the simulated match's play-by-play feed. */
+export interface KillEvent {
+  /** Seconds into the (simulated) game. */
+  t: number;
+  team: 'blue' | 'red';
+  killerPuuid: string;
+  victimPuuid: string;
+  assistPuuids: string[];
+}
+
+/** A just-for-fun simulated match, weighted by the computed win rate — not a real Riot game. */
+export interface GameResult {
+  winner: 'blue' | 'red';
+  durationSec: number;
+  blueKills: number;
+  redKills: number;
+  stats: PlayerGameStat[];
+  events: KillEvent[];
+  mvpPuuid: string;
 }

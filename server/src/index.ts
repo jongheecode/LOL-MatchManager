@@ -7,7 +7,9 @@ import { DEFAULT_PLATFORM, DEFAULT_REGIONAL, PORT, RIOT_API_KEY } from './env.js
 import { getDdragon, startDdragonRefresh, ddragonVersion, allChampions } from './ddragon.js';
 import { buildPlayerProfile, resolveAccount } from './profile.js';
 import { RiotApiError } from './riot.js';
-import type { AnalyzeEvent, Position } from './types.js';
+import { ROSTER } from './roster.js';
+import { riotCache } from './cache.js';
+import type { AnalyzeEvent, Player, Position } from './types.js';
 
 const app = express();
 app.use(cors());
@@ -38,6 +40,36 @@ app.get('/api/champions', async (_req, res) => {
     /* fall through, allChampions() just returns [] until the next lazy refresh succeeds */
   }
   res.json({ champions: allChampions() });
+});
+
+app.get('/api/roster', async (_req, res) => {
+  if (!RIOT_API_KEY) {
+    return res.json({ players: [] });
+  }
+  try {
+    const players = await riotCache.getOrSet<Player[]>('roster:resolved', 10 * 60_000, async () => {
+      const resolved = await Promise.all(
+        ROSTER.map(async (r) => {
+          try {
+            const account = await resolveAccount(DEFAULT_REGIONAL, r.name, r.tag);
+            if (!account) return null;
+            return await buildPlayerProfile(DEFAULT_PLATFORM, DEFAULT_REGIONAL, account, {
+              matchCount: 10,
+              includeMastery: false,
+              includeLive: false,
+            });
+          } catch {
+            return null;
+          }
+        }),
+      );
+      return resolved.filter((p): p is Player => !!p);
+    });
+    res.json({ players });
+  } catch (err) {
+    const { status, message } = messageFor(err);
+    res.status(status).json({ players: [], message });
+  }
 });
 
 app.get('/api/lookup', async (req, res) => {

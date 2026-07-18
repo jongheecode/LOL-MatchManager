@@ -5,7 +5,7 @@ import { TierEmblem } from './TierEmblem';
 import { ChampIcon } from './ChampIcon';
 import { ChampionPicker } from './ChampionPicker';
 import { posColor, posLabel } from '../lib/positions';
-import { effectiveWr, reasonText } from '../lib/balance';
+import { champPoolFor, effectiveWr, reasonText } from '../lib/balance';
 
 const CLIP = 'polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)';
 
@@ -36,8 +36,9 @@ export function ResultCard({
 }) {
   const p = entry.player;
   const accent = team === 'blue' ? '#5aa9ff' : '#f0656a';
-  const selectedStat = selectedChamp ? p.champPool.find((c) => c.champ.name === selectedChamp.name) : null;
-  const wr = effectiveWr(p, selectedChamp ? { [p.puuid]: selectedChamp } : undefined);
+  const pool = champPoolFor(entry);
+  const selectedStat = selectedChamp ? pool.find((c) => c.champ.name === selectedChamp.name) : null;
+  const wr = effectiveWr(entry, selectedChamp ? { [p.puuid]: selectedChamp } : undefined);
   const wrColor = wr >= 55 ? '#4fd18a' : wr < 50 ? '#f0797d' : '#c8cede';
   const wrLabel = selectedChamp ? (selectedStat ? `${selectedChamp.name} 실전 승률` : `${selectedChamp.name} 예상 (표본 없음)`) : '최근 전적';
   const reason = reasonText(entry.pos, p, entry.honored, isTop);
@@ -122,8 +123,8 @@ export function ResultCard({
         <div style={{ fontSize: 9.5, color: '#6f7b96', letterSpacing: 0.3, whiteSpace: 'nowrap' }}>{wrLabel}</div>
       </div>
       <div style={{ display: 'flex', gap: 4 }}>
-        {p.champs.slice(0, 3).map((ch, i) => (
-          <ChampIcon key={ch.name + i} champ={ch} />
+        {pool.slice(0, 3).map((c, i) => (
+          <ChampIcon key={c.champ.name + i} champ={c.champ} />
         ))}
       </div>
     </div>
@@ -182,11 +183,12 @@ export function ResultCard({
       >
         <ChampionPicker
           allChampions={allChampions}
-          champPool={p.champPool}
+          champPool={pool}
           selected={selectedChamp}
           onSelect={onSelectChamp}
           accent={accent}
           align={team === 'blue' ? 'left' : 'right'}
+          needsPick={pool.length === 0 && !selectedChamp}
         />
       </div>
     </div>

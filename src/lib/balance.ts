@@ -47,29 +47,51 @@ export function assign(players: Player[]): TeamEntry[] {
 /** puuid -> selected champion. When a player has a champ picked here, their historical win rate on that specific champion (from champPool) replaces their overall recent form in the win-rate math. */
 export type ChampPicks = Record<string, ChampSummary>;
 
-export function effectiveWr(player: Player, picks?: ChampPicks): number {
-  const picked = picks?.[player.puuid];
-  if (!picked) return player.form.wr;
-  const entry = player.champPool.find((c) => c.champ.name === picked.name);
-  return entry ? entry.winRate : player.form.wr;
+/** Champion pool for the exact slot a player is drafted into — a player's history in a *different*
+ * lane isn't relevant here (that's the mismatch bug: showing a jungle main's champs under an ADC tag). */
+export function champPoolFor(entry: TeamEntry): { champ: ChampSummary; games: number; winRate: number }[] {
+  return entry.player.posChampPool[entry.pos] ?? [];
 }
 
-/** The champion a player will play this round: their explicit pick, else their most-played recent champ. */
-export function resolveChamp(player: Player, picks?: ChampPicks): ChampSummary {
-  return picks?.[player.puuid] ?? player.champs[0] ?? { name: '알 수 없음', iconId: '' };
+export function dangerPicksFor(entry: TeamEntry): { champ: ChampSummary; games: number; winRate: number }[] {
+  return champPoolFor(entry)
+    .filter((d) => d.games >= 3 && d.winRate >= 60)
+    .sort((a, b) => b.winRate - a.winRate || b.games - a.games)
+    .slice(0, 2);
 }
 
-/** Logistic win-rate estimate from combined MMR + recent-form gap, clamped to a believable 38~62% band. */
+export function effectiveWr(entry: TeamEntry, picks?: ChampPicks): number {
+  const picked = picks?.[entry.player.puuid];
+  if (!picked) return entry.player.form.wr;
+  const found = champPoolFor(entry).find((c) => c.champ.name === picked.name);
+  return found ? found.winRate : entry.player.form.wr;
+}
+
+/** The champion a player will play this round: their explicit pick, else their most-played champ in this exact slot. */
+export function resolveChamp(entry: TeamEntry, picks?: ChampPicks): ChampSummary {
+  return picks?.[entry.player.puuid] ?? champPoolFor(entry)[0]?.champ ?? { name: '알 수 없음', iconId: '' };
+}
+
+/** True when this slot has no real champion data to fall back on (no games in this exact lane) and
+ * no explicit pick has been made — the game simulator shouldn't quietly guess a champion here. */
+export function needsManualPick(entry: TeamEntry, picks?: ChampPicks): boolean {
+  return champPoolFor(entry).length === 0 && !picks?.[entry.player.puuid];
+}
+
+/** Logistic win-rate estimate from combined MMR + recent-form gap, clamped to a believable 20~80% band.
+ * The divisor/weights are tuned for *real* Riot MMR (roughly 0~4000, unranked through apex), which
+ * spans far wider than the design mock's synthetic 2380~2900 band — the original constants saturated
+ * the sigmoid (and thus the old 38~62 clamp) on almost every real draft with a mixed-skill friend group. */
 export function rates(teams: Teams, picks?: ChampPicks): Rates {
   const sum = (t: TeamEntry[]) => t.reduce((a, c) => a + c.player.score, 0);
-  const form = (t: TeamEntry[]) => t.reduce((a, c) => a + (effectiveWr(c.player, picks) - 50), 0);
+  const form = (t: TeamEntry[]) => t.reduce((a, c) => a + (effectiveWr(c, picks) - 50), 0);
   const b = sum(teams.blue);
   const r = sum(teams.red);
   const bf = form(teams.blue);
   const rf = form(teams.red);
-  const diff = b - r + (bf - rf) * 5;
-  const p = 1 / (1 + Math.exp(-diff / 470));
-  const blue = Math.max(38, Math.min(62, Math.round(p * 100)));
+  const diff = b - r + (bf - rf) * 2;
+  const p = 1 / (1 + Math.exp(-diff / 650));
+  const blue = Math.max(20, Math.min(80, Math.round(p * 100)));
   return {
     blue,
     red: 100 - blue,

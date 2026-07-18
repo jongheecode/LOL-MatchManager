@@ -46,7 +46,7 @@ export function ResultScreen({
 }) {
   const gap = Math.abs(rates.blue - rates.red);
   const verdict =
-    gap <= 4 ? '⚖ 매우 균형 잡힌 매치 — 백중세 예상' : gap <= 8 ? '살짝 기울지만 해볼 만한 매치' : '한쪽이 다소 유리 — 스왑으로 조정해 보세요';
+    gap <= 10 ? '⚖ 매우 균형 잡힌 매치 — 백중세 예상' : gap <= 25 ? '살짝 기울지만 해볼 만한 매치' : '한쪽이 다소 유리 — 스왑으로 조정해 보세요';
 
   const blueTop = topScore(teams.blue);
   const redTop = topScore(teams.red);

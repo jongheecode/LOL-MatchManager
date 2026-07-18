@@ -25,11 +25,8 @@ export function getSavedPlayers(): SavedPlayer[] {
   return read().sort((a, b) => b.lastUsed - a.lastUsed);
 }
 
-/** Remembers a successfully-resolved player locally so the sidebar has real history to offer next time. */
-export function rememberPlayer(player: Player, region: string) {
-  const list = read();
-  const idx = list.findIndex((p) => p.name === player.name && p.tag === player.tag);
-  const entry: SavedPlayer = {
+export function toSavedPlayer(player: Player, region: string, opts: { pinned?: boolean } = {}): SavedPlayer {
+  return {
     name: player.name,
     tag: player.tag,
     region,
@@ -37,7 +34,15 @@ export function rememberPlayer(player: Player, region: string) {
     mainPos: player.mainPos,
     hue: player.hue,
     lastUsed: Date.now(),
+    pinned: opts.pinned,
   };
+}
+
+/** Remembers a successfully-resolved player locally so the sidebar has real history to offer next time. */
+export function rememberPlayer(player: Player, region: string) {
+  const list = read();
+  const idx = list.findIndex((p) => p.name === player.name && p.tag === player.tag);
+  const entry = toSavedPlayer(player, region);
   if (idx >= 0) list[idx] = entry;
   else list.push(entry);
   write(list);

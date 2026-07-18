@@ -1,14 +1,13 @@
 import type { TeamEntry, Teams } from '../types';
 import { ChampIcon } from './ChampIcon';
 import { posLabel } from '../lib/positions';
+import { champPoolFor, dangerPicksFor } from '../lib/balance';
 
 function DraftRow({ entry, accent }: { entry: TeamEntry; accent: string }) {
   const p = entry.player;
-  const pick = p.champs[0];
-  // champs/dangerPicks are scoped to the player's real main lane. If they got bumped to an
-  // off-role slot (another teammate had priority on their lane), that data belongs to a
-  // different position than entry.pos — showing it here would read as "ADC who plays Darius".
-  const offRole = !entry.honored;
+  const pool = champPoolFor(entry);
+  const pick = pool[0]?.champ;
+  const dangers = dangerPicksFor(entry);
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: '1px solid #16203380' }}>
@@ -25,11 +24,7 @@ function DraftRow({ entry, accent }: { entry: TeamEntry; accent: string }) {
       >
         {p.name}
       </span>
-      {offRole ? (
-        <span style={{ flex: 1, fontSize: 11, color: '#55617a' }}>
-          부포지션 소화 (주 라인 {posLabel(p.mainPos)}) · 이 라인 데이터 없음
-        </span>
-      ) : pick ? (
+      {pick ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
           <ChampIcon champ={pick} size={20} />
           <span style={{ fontSize: 11.5, color: '#b6c0d6', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -37,36 +32,34 @@ function DraftRow({ entry, accent }: { entry: TeamEntry; accent: string }) {
           </span>
         </div>
       ) : (
-        <span style={{ flex: 1, fontSize: 11.5, color: '#55617a' }}>추천 픽 데이터 없음</span>
+        <span style={{ flex: 1, fontSize: 11, color: '#55617a' }}>이 라인 표본 데이터 없음</span>
       )}
-      {!offRole && (
-        <div style={{ display: 'flex', gap: 6, flex: 'none' }}>
-          {entry.player.dangerPicks.map((d) => (
-            <div
-              key={d.champ.name}
-              title={`${d.champ.name} · 최근 ${d.games}전 ${d.winRate}%`}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                background: `${accent}18`,
-                border: `1px solid ${accent}55`,
-                borderRadius: 6,
-                padding: '2px 6px 2px 3px',
-              }}
-            >
-              <ChampIcon champ={d.champ} size={16} />
-              <span style={{ fontSize: 10, color: accent, fontWeight: 700 }}>밴 · {d.winRate}%</span>
-            </div>
-          ))}
-        </div>
-      )}
+      <div style={{ display: 'flex', gap: 6, flex: 'none' }}>
+        {dangers.map((d) => (
+          <div
+            key={d.champ.name}
+            title={`${d.champ.name} · 이 라인 최근 ${d.games}전 ${d.winRate}%`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              background: `${accent}18`,
+              border: `1px solid ${accent}55`,
+              borderRadius: 6,
+              padding: '2px 6px 2px 3px',
+            }}
+          >
+            <ChampIcon champ={d.champ} size={16} />
+            <span style={{ fontSize: 10, color: accent, fontWeight: 700 }}>밴 · {d.winRate}%</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
 export function DraftPanel({ teams, open, onToggle }: { teams: Teams; open: boolean; onToggle: () => void }) {
-  const anyDanger = [...teams.blue, ...teams.red].some((c) => c.player.dangerPicks.length > 0);
+  const anyDanger = [...teams.blue, ...teams.red].some((c) => dangerPicksFor(c).length > 0);
 
   return (
     <div style={{ marginTop: 22, background: '#0f1524', border: '1px solid #1e2740', borderRadius: 14, overflow: 'hidden' }}>
@@ -88,7 +81,7 @@ export function DraftPanel({ teams, open, onToggle }: { teams: Teams; open: bool
         }}
       >
         <span>
-          밴픽 추천 <span style={{ fontSize: 11, color: '#6f7b96', fontWeight: 400 }}>(최근 전적 기반)</span>
+          밴픽 추천 <span style={{ fontSize: 11, color: '#6f7b96', fontWeight: 400 }}>(이 라인에서의 실제 전적 기반)</span>
         </span>
         <span
           style={{
