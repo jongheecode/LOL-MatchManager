@@ -7,3 +7,5 @@ server/node_modules
 server/dist
 *.tsbuildinfo
 .claude/
+*.png
+!public/**/*.png

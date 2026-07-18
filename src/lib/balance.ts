@@ -90,6 +90,16 @@ function kdaRatioOf(entry: TeamEntry): number {
 
 const sigmoidPct = (x: number) => Math.round((1 / (1 + Math.exp(-x / 650))) * 100);
 
+/** How much a player's MMR should count toward the win-rate math. A player slotted into their real
+ * main/preferred lane (honored) has a proven track record there — full weight. An off-role fill with
+ * *some* games in that lane is still somewhat trustworthy. An off-role fill with zero games there
+ * (e.g. a jungle main forced into ADC) has no evidence their overall rank transfers to that lane, so
+ * their score is pulled toward the draft's average instead of swinging the team total at full force. */
+function scoreConfidence(entry: TeamEntry): number {
+  if (entry.honored) return 1;
+  return champPoolFor(entry).length > 0 ? 0.85 : 0.65;
+}
+
 /** Logistic win-rate estimate from MMR + recent-form + real KDA gaps, clamped to a believable 20~80%
  * band. The divisor/weights are tuned for *real* Riot MMR (roughly 0~4000, unranked through apex),
  * which spans far wider than the design mock's synthetic 2380~2900 band — the original constants
@@ -97,17 +107,26 @@ const sigmoidPct = (x: number) => Math.round((1 / (1 + Math.exp(-x / 650))) * 10
  * friend group. KDA is a secondary signal (small weight) since win-rate and MMR already capture most
  * of it; it mainly nudges close calls using each player's actual recent kill participation. */
 export function rates(teams: Teams, picks?: ChampPicks): Rates {
+  const allEntries = [...teams.blue, ...teams.red];
+  const poolAvgScore = allEntries.reduce((a, c) => a + c.player.score, 0) / allEntries.length;
+  const effectiveScore = (c: TeamEntry) => poolAvgScore + (c.player.score - poolAvgScore) * scoreConfidence(c);
+
   const sum = (t: TeamEntry[]) => t.reduce((a, c) => a + c.player.score, 0);
+  const weightedSum = (t: TeamEntry[]) => t.reduce((a, c) => a + effectiveScore(c), 0);
   const form = (t: TeamEntry[]) => t.reduce((a, c) => a + (effectiveWr(c, picks) - 50), 0);
   const kda = (t: TeamEntry[]) => t.reduce((a, c) => a + (kdaRatioOf(c) - NEUTRAL_KDA), 0);
+  // bScore/rScore (shown to the user) stay the real, undampened average rank — only the win-rate
+  // math itself discounts unproven off-role assignments.
   const b = sum(teams.blue);
   const r = sum(teams.red);
+  const wBlue = weightedSum(teams.blue);
+  const wRed = weightedSum(teams.red);
   const bf = form(teams.blue);
   const rf = form(teams.red);
   const bk = kda(teams.blue);
   const rk = kda(teams.red);
 
-  const scoreTerm = b - r;
+  const scoreTerm = wBlue - wRed;
   const formTerm = (bf - rf) * 2;
   const kdaTerm = (bk - rk) * 18;
   const diff = scoreTerm + formTerm + kdaTerm;
