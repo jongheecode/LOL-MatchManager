@@ -147,13 +147,18 @@ export function simulateGame(teams: Teams, rates: Rates, picks: ChampPicks): Gam
       let cs: number;
       let gold: number;
       let damage: number;
-      if (p.avgStats) {
-        // Center on this player's real per-game average, with modest variance and a small
-        // win/perf nudge — same idea as real games running a bit hotter when things go well.
+      if (p.avgStats && p.avgStats.durationMin > 0) {
+        // Center on this player's real per-MINUTE rate, then scale to *this* simulated game's
+        // length — applying their raw per-game totals directly would inflate CS/gold/damage
+        // whenever the simulated game is shorter than their real average game (e.g. 300+ CS in
+        // a 22-minute game, which isn't physically possible).
         const jitter = () => 0.85 + Math.random() * 0.3;
-        cs = Math.max(0, Math.round(p.avgStats.cs * jitter() * (0.92 + factor * 0.1)));
-        gold = Math.max(500, Math.round(p.avgStats.gold * jitter() * (0.9 + factor * 0.12) + (isWin ? 300 : 0)));
-        damage = Math.max(1000, Math.round(p.avgStats.damage * jitter() * (0.85 + factor * 0.2)));
+        const csPerMin = p.avgStats.cs / p.avgStats.durationMin;
+        const goldPerMin = p.avgStats.gold / p.avgStats.durationMin;
+        const dmgPerMin = p.avgStats.damage / p.avgStats.durationMin;
+        cs = Math.max(0, Math.round(csPerMin * minutes * jitter() * (0.92 + factor * 0.1)));
+        gold = Math.max(500, Math.round(goldPerMin * minutes * jitter() * (0.9 + factor * 0.12) + (isWin ? 300 : 0)));
+        damage = Math.max(1000, Math.round(dmgPerMin * minutes * jitter() * (0.85 + factor * 0.2)));
       } else {
         const w = ROLE_WEIGHT[entry.pos];
         cs = Math.max(0, Math.round((w.cs[0] + Math.random() * (w.cs[1] - w.cs[0])) * minutes));

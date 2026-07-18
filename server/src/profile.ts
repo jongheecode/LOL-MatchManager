@@ -66,16 +66,22 @@ export async function buildPlayerProfile(
   const matches = (await Promise.all(matchIds.map((id) => getMatchDetail(regional, id, priority)))).filter(
     (m): m is NonNullable<typeof m> => !!m,
   );
+  // Carry each match's real length alongside the participant row — CS/gold/damage only make sense
+  // once converted to a per-minute rate, since the simulator's game length won't match this game's.
   const records = matches
-    .map((m) => m.info.participants.find((p: RiotMatchParticipant) => p.puuid === puuid))
-    .filter((p): p is RiotMatchParticipant => !!p);
+    .map((m) => {
+      const p = m.info.participants.find((pp: RiotMatchParticipant) => pp.puuid === puuid);
+      return p ? { ...p, gameDurationSec: m.info.gameDuration } : null;
+    })
+    .filter((p): p is RiotMatchParticipant & { gameDurationSec: number } => !!p);
 
   phase('주 포지션 파악 중...');
   // Group every sampled game by the lane it was actually played in — not just the single most
   // common lane — so that a player who got slotted into a *different* lane this draft (their
   // own explicit position preference, or a leftover-fill) can still show real champion data for
   // THAT lane instead of leaking in champs from their main lane (e.g. "ADC" showing a jungle champ).
-  const byPos = new Map<Position, RiotMatchParticipant[]>();
+  type RecordWithDuration = RiotMatchParticipant & { gameDurationSec: number };
+  const byPos = new Map<Position, RecordWithDuration[]>();
   for (const r of records) {
     const pos = fromRiotTeamPosition(r.teamPosition);
     if (!pos) continue;
@@ -120,10 +126,12 @@ export async function buildPlayerProfile(
   // so "예상 승률"/시뮬레이션 KDA are grounded in this specific player's actual recent numbers
   // instead of a generic role archetype.
   const statsRecords = byPos.get(mainPos) ?? records;
-  const sum = (pick: (r: RiotMatchParticipant) => number) => statsRecords.reduce((a, r) => a + pick(r), 0);
+  const sum = (pick: (r: RecordWithDuration) => number) => statsRecords.reduce((a, r) => a + pick(r), 0);
+  const avgDurationMin = statsRecords.length ? sum((r) => r.gameDurationSec) / statsRecords.length / 60 : 0;
   const avgStats: Player['avgStats'] = statsRecords.length
     ? {
         games: statsRecords.length,
+        durationMin: Math.round(avgDurationMin * 10) / 10,
         kills: Math.round((sum((r) => r.kills) / statsRecords.length) * 10) / 10,
         deaths: Math.round((sum((r) => r.deaths) / statsRecords.length) * 10) / 10,
         assists: Math.round((sum((r) => r.assists) / statsRecords.length) * 10) / 10,

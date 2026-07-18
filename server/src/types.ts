@@ -36,7 +36,17 @@ export interface Player {
   masteryChamps: MasteryChamp[];
   dangerPicks: { champ: ChampSummary; games: number; winRate: number }[];
   /** Real per-game average (kills/deaths/assists/cs/damage/gold) from the sampled matches in this lane — grounds the game simulator in this player's actual numbers. Null if no games in this lane. */
-  avgStats: { games: number; kills: number; deaths: number; assists: number; cs: number; damage: number; gold: number } | null;
+  avgStats: {
+    games: number;
+    /** Average real game length (minutes) these numbers were measured over — needed to scale CS/gold/damage to a simulated game of a different length. */
+    durationMin: number;
+    kills: number;
+    deaths: number;
+    assists: number;
+    cs: number;
+    damage: number;
+    gold: number;
+  } | null;
   liveGame: boolean;
   pref: Position | null;
 }
