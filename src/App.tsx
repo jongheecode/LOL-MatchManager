@@ -50,11 +50,26 @@ export default function App() {
       .catch(() => {
         /* champion picker just shows an empty list until this succeeds on a later mount */
       });
-    fetchRoster()
-      .then((players) => setRoster(players.map((p) => toSavedPlayer(p, 'kr', { pinned: true }))))
-      .catch(() => {
-        /* the shared roster is a convenience, not a requirement — sidebar still works without it */
-      });
+    let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout>;
+    const pollRoster = () => {
+      fetchRoster()
+        .then(({ players, warming }) => {
+          if (cancelled) return;
+          if (players.length) setRoster(players.map((p) => toSavedPlayer(p, 'kr', { pinned: true })));
+          // Server resolves the roster in the background (can take a few minutes) — keep checking
+          // back until it's ready rather than treating an empty first response as final.
+          if (warming) retryTimer = setTimeout(pollRoster, 20_000);
+        })
+        .catch(() => {
+          /* the shared roster is a convenience, not a requirement — sidebar still works without it */
+        });
+    };
+    pollRoster();
+    return () => {
+      cancelled = true;
+      clearTimeout(retryTimer);
+    };
   }, []);
 
   useEffect(() => {

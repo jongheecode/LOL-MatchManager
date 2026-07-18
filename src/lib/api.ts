@@ -19,12 +19,14 @@ export async function fetchChampions(): Promise<ChampSummary[]> {
   return body.champions as ChampSummary[];
 }
 
-/** The shared, server-pinned roster — same list for every visitor, no lookup needed. */
-export async function fetchRoster(): Promise<Player[]> {
+/** The shared, server-pinned roster — same list for every visitor, no lookup needed. The server
+ * never blocks this request on a cold cache (resolving ~14 players can take minutes), so `warming`
+ * tells the caller to poll again shortly instead of treating an empty list as final. */
+export async function fetchRoster(): Promise<{ players: Player[]; warming: boolean }> {
   const res = await fetch('/api/roster');
   if (!res.ok) throw new Error('roster fetch failed');
   const body = await res.json();
-  return body.players as Player[];
+  return { players: body.players as Player[], warming: !!body.warming };
 }
 
 export async function lookupPlayer(name: string, tag: string, signal?: AbortSignal): Promise<LookupResponse | LookupError> {

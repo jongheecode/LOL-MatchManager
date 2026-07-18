@@ -42,41 +42,53 @@ app.get('/api/champions', async (_req, res) => {
   res.json({ champions: allChampions() });
 });
 
-// Resolving all 10 roster members costs ~14 Riot calls each (140 total) — a big chunk of a personal
-// key's 100-req/2min budget, so this is cached for a while and always runs at 'low' priority so it
-// can never make a real visitor's own lookup/analyze request wait behind it (see queue.ts).
-function resolveRoster(): Promise<Player[]> {
-  return riotCache.getOrSet<Player[]>('roster:resolved', 30 * 60_000, async () => {
-    const resolved = await Promise.all(
-      ROSTER.map(async (r) => {
-        try {
-          const account = await resolveAccount(DEFAULT_REGIONAL, r.name, r.tag, 'low');
-          if (!account) return null;
-          return await buildPlayerProfile(DEFAULT_PLATFORM, DEFAULT_REGIONAL, account, {
-            matchCount: 10,
-            includeMastery: false,
-            includeLive: false,
-            priority: 'low',
-          });
-        } catch {
-          return null;
-        }
-      }),
-    );
-    return resolved.filter((p): p is Player => !!p);
-  });
+// Resolving all 14 roster members costs ~14 Riot calls each (~200 total) — easily minutes at a
+// personal key's 100-req/2min budget, which is longer than Render's gateway will hold a request
+// open. So this only ever runs in the background (at 'low' priority, never blocking a real
+// visitor's own lookup/analyze — see queue.ts) and the HTTP route below never awaits it directly.
+const ROSTER_KEY = 'roster:resolved';
+let warmingRoster: Promise<Player[]> | null = null;
+
+function warmRoster(): Promise<Player[]> {
+  if (warmingRoster) return warmingRoster;
+  warmingRoster = riotCache
+    .getOrSet<Player[]>(ROSTER_KEY, 30 * 60_000, async () => {
+      const resolved = await Promise.all(
+        ROSTER.map(async (r) => {
+          try {
+            const account = await resolveAccount(DEFAULT_REGIONAL, r.name, r.tag, 'low');
+            if (!account) return null;
+            return await buildPlayerProfile(DEFAULT_PLATFORM, DEFAULT_REGIONAL, account, {
+              matchCount: 10,
+              includeMastery: false,
+              includeLive: false,
+              priority: 'low',
+            });
+          } catch {
+            return null;
+          }
+        }),
+      );
+      return resolved.filter((p): p is Player => !!p);
+    })
+    .finally(() => {
+      warmingRoster = null;
+    });
+  return warmingRoster;
 }
 
-app.get('/api/roster', async (_req, res) => {
+app.get('/api/roster', (_req, res) => {
   if (!RIOT_API_KEY) {
     return res.json({ players: [] });
   }
-  try {
-    res.json({ players: await resolveRoster() });
-  } catch (err) {
-    const { status, message } = messageFor(err);
-    res.status(status).json({ players: [], message });
+  const cached = riotCache.get<Player[]>(ROSTER_KEY);
+  if (cached) {
+    return res.json({ players: cached });
   }
+  // Not cached (first boot, or the 30min TTL just expired) — kick off/join the background warmup
+  // and respond immediately with an empty list rather than making the client wait minutes for it.
+  void warmRoster().catch(() => {});
+  res.json({ players: [], warming: true });
 });
 
 app.get('/api/lookup', async (req, res) => {
@@ -182,7 +194,7 @@ async function main() {
   // Warm the roster cache in the background (low priority) so it's usually ready before anyone
   // asks for it, without delaying server startup or an early visitor's own request.
   if (RIOT_API_KEY) {
-    resolveRoster().catch((err) => {
+    warmRoster().catch((err) => {
       // eslint-disable-next-line no-console
       console.warn('[pentabalance] roster warmup failed, will retry lazily on next request:', err);
     });
