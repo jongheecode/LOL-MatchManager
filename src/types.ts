@@ -42,6 +42,8 @@ export interface Player {
   masteryChamps: MasteryChamp[];
   /** Champions this player has a hot hand with in the sampled recent games (>=3 games, >=60% win rate) — worth banning. */
   dangerPicks: { champ: ChampSummary; games: number; winRate: number }[];
+  /** Real per-game average (K/D/A/CS/damage/gold) from the sampled matches in this lane — grounds the game simulator in this player's actual numbers. Null if no games in this lane. */
+  avgStats: { games: number; kills: number; deaths: number; assists: number; cs: number; damage: number; gold: number } | null;
   liveGame: boolean;
   /** Preferred position chosen by the user for this session's draft, if any. */
   pref: Position | null;
@@ -75,6 +77,15 @@ export interface Rates {
   rScore: number;
   bForm: number;
   rForm: number;
+  /** Average (kills+assists)/deaths per team, from real recent-match averages when available. */
+  bKda: number;
+  rKda: number;
+  /** What blue's % would be if only that one factor were in play — lets the UI explain the number. */
+  breakdown: {
+    scoreOnlyPct: number;
+    formOnlyPct: number;
+    kdaOnlyPct: number;
+  };
 }
 
 export type Screen = 'input' | 'analyzing' | 'result' | 'game';

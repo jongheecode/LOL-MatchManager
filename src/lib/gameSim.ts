@@ -1,7 +1,8 @@
 import type { GameResult, KillEvent, PlayerGameStat, Position, Rates, Teams, TeamEntry } from '../types';
 import { effectiveWr, resolveChamp, type ChampPicks } from './balance';
 
-/** Fun, made-up role tendencies — not real LoL data, just plausible flavor for the simulator. */
+/** Fallback role tendencies for players with no real avgStats sample (e.g. forced off-role fill) —
+ * made-up flavor, not real LoL data. Whenever a player has a real per-game average, that's used instead. */
 const ROLE_WEIGHT: Record<Position, { kill: number; death: number; assist: number; cs: [number, number]; gold: [number, number] }> = {
   TOP: { kill: 0.9, death: 0.9, assist: 0.75, cs: [6.2, 8.4], gold: [280, 340] },
   JG: { kill: 1.0, death: 0.85, assist: 1.35, cs: [4.4, 6.2], gold: [270, 330] },
@@ -34,9 +35,27 @@ function perfOf(entry: TeamEntry, isWin: boolean, picks: ChampPicks) {
   return clamp(1 + (isWin ? 0.16 : -0.12) + (wr - 50) / 160 + (Math.random() * 0.3 - 0.15), 0.6, 1.5);
 }
 
+/** How likely this player is to land a kill this event — their own real average kills/game if we
+ * have one, else a generic role tendency. Either way scaled by this game's performance factor. */
+function killWeight(entry: TeamEntry, perf: number): number {
+  const base = entry.player.avgStats ? entry.player.avgStats.kills + 0.4 : ROLE_WEIGHT[entry.pos].kill;
+  return base * perf;
+}
+
+function deathWeight(entry: TeamEntry, perf: number): number {
+  const base = entry.player.avgStats ? entry.player.avgStats.deaths + 0.4 : ROLE_WEIGHT[entry.pos].death;
+  return base / perf;
+}
+
+function assistWeight(entry: TeamEntry): number {
+  return entry.player.avgStats ? entry.player.avgStats.assists + 0.4 : ROLE_WEIGHT[entry.pos].assist;
+}
+
 /** A just-for-fun simulated match: winner weighted by the computed win rate, then a real kill-by-kill
  * feed is generated (not just aggregate stats) so kills/deaths/assists per player fall out of actual
- * events — good for an animated "replay" and internally consistent numbers. Not real Riot data. */
+ * events — good for an animated "replay" and internally consistent numbers. Every player's odds of
+ * getting a kill/death/assist, and their final CS/gold/damage, are anchored to THEIR OWN real recent
+ * per-game average (avgStats) whenever we have one, not a generic role template. Not real Riot data. */
 export function simulateGame(teams: Teams, rates: Rates, picks: ChampPicks): GameResult {
   const winner: 'blue' | 'red' = Math.random() * 100 < rates.blue ? 'blue' : 'red';
   const loser: 'blue' | 'red' = winner === 'blue' ? 'red' : 'blue';
@@ -69,8 +88,8 @@ export function simulateGame(teams: Teams, rates: Rates, picks: ChampPicks): Gam
     else loseRemaining--;
     const victimTeam = killerTeam === 'blue' ? 'red' : 'blue';
 
-    const killerEntry = pickWeighted(teams[killerTeam], (e) => ROLE_WEIGHT[e.pos].kill * (perf.get(e.player.puuid) ?? 1));
-    const victimEntry = pickWeighted(teams[victimTeam], (e) => ROLE_WEIGHT[e.pos].death / (perf.get(e.player.puuid) ?? 1));
+    const killerEntry = pickWeighted(teams[killerTeam], (e) => killWeight(e, perf.get(e.player.puuid) ?? 1));
+    const victimEntry = pickWeighted(teams[victimTeam], (e) => deathWeight(e, perf.get(e.player.puuid) ?? 1));
 
     const assistCount = (() => {
       const r = Math.random();
@@ -83,7 +102,7 @@ export function simulateGame(teams: Teams, rates: Rates, picks: ChampPicks): Gam
     const assisters: TeamEntry[] = [];
     const pool = [...assistCandidates];
     for (let i = 0; i < assistCount && pool.length; i++) {
-      const pick = pickWeighted(pool, (e) => ROLE_WEIGHT[e.pos].assist);
+      const pick = pickWeighted(pool, assistWeight);
       assisters.push(pick);
       pool.splice(pool.indexOf(pick), 1);
     }
@@ -107,15 +126,28 @@ export function simulateGame(teams: Teams, rates: Rates, picks: ChampPicks): Gam
     const isWin = team === winner;
     for (const entry of teams[team]) {
       const p = entry.player;
-      const w = ROLE_WEIGHT[entry.pos];
       const factor = perf.get(p.puuid) ?? 1;
       const k = kills.get(p.puuid) ?? 0;
       const d = deaths.get(p.puuid) ?? 0;
       const a = assists.get(p.puuid) ?? 0;
-      const cs = Math.max(0, Math.round((w.cs[0] + Math.random() * (w.cs[1] - w.cs[0])) * minutes));
-      const goldPerMin = w.gold[0] + Math.random() * (w.gold[1] - w.gold[0]);
-      const gold = Math.max(500, Math.round(goldPerMin * minutes + k * 300 + a * 150 + (isWin ? 400 : 0)));
-      const damage = Math.max(1000, Math.round((cs * 22 + k * 900 + a * 220) * (0.85 + factor * 0.3) * (0.9 + Math.random() * 0.25)));
+
+      let cs: number;
+      let gold: number;
+      let damage: number;
+      if (p.avgStats) {
+        // Center on this player's real per-game average, with modest variance and a small
+        // win/perf nudge — same idea as real games running a bit hotter when things go well.
+        const jitter = () => 0.85 + Math.random() * 0.3;
+        cs = Math.max(0, Math.round(p.avgStats.cs * jitter() * (0.92 + factor * 0.1)));
+        gold = Math.max(500, Math.round(p.avgStats.gold * jitter() * (0.9 + factor * 0.12) + (isWin ? 300 : 0)));
+        damage = Math.max(1000, Math.round(p.avgStats.damage * jitter() * (0.85 + factor * 0.2)));
+      } else {
+        const w = ROLE_WEIGHT[entry.pos];
+        cs = Math.max(0, Math.round((w.cs[0] + Math.random() * (w.cs[1] - w.cs[0])) * minutes));
+        const goldPerMin = w.gold[0] + Math.random() * (w.gold[1] - w.gold[0]);
+        gold = Math.max(500, Math.round(goldPerMin * minutes + k * 300 + a * 150 + (isWin ? 400 : 0)));
+        damage = Math.max(1000, Math.round((cs * 22 + k * 900 + a * 220) * (0.85 + factor * 0.3) * (0.9 + Math.random() * 0.25)));
+      }
 
       stats.push({ puuid: p.puuid, pos: entry.pos, team, champ: resolveChamp(entry, picks), kills: k, deaths: d, assists: a, cs, gold, damage, win: isWin });
     }

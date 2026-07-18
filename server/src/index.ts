@@ -42,10 +42,11 @@ app.get('/api/champions', async (_req, res) => {
   res.json({ champions: allChampions() });
 });
 
-// Resolving all 10 roster members costs ~13 Riot calls each — always at 'low' priority so it can
-// never make a real visitor's own lookup/analyze request wait behind it (see queue.ts).
+// Resolving all 10 roster members costs ~14 Riot calls each (140 total) — a big chunk of a personal
+// key's 100-req/2min budget, so this is cached for a while and always runs at 'low' priority so it
+// can never make a real visitor's own lookup/analyze request wait behind it (see queue.ts).
 function resolveRoster(): Promise<Player[]> {
-  return riotCache.getOrSet<Player[]>('roster:resolved', 10 * 60_000, async () => {
+  return riotCache.getOrSet<Player[]>('roster:resolved', 30 * 60_000, async () => {
     const resolved = await Promise.all(
       ROSTER.map(async (r) => {
         try {

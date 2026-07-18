@@ -111,6 +111,13 @@ export interface RiotMatchParticipant {
   win: boolean;
   championName: string;
   teamPosition: string;
+  kills: number;
+  deaths: number;
+  assists: number;
+  totalMinionsKilled: number;
+  neutralMinionsKilled: number;
+  totalDamageDealtToChampions: number;
+  goldEarned: number;
 }
 
 export interface RiotMatch {

@@ -78,18 +78,39 @@ export function needsManualPick(entry: TeamEntry, picks?: ChampPicks): boolean {
   return champPoolFor(entry).length === 0 && !picks?.[entry.player.puuid];
 }
 
-/** Logistic win-rate estimate from combined MMR + recent-form gap, clamped to a believable 20~80% band.
- * The divisor/weights are tuned for *real* Riot MMR (roughly 0~4000, unranked through apex), which
- * spans far wider than the design mock's synthetic 2380~2900 band — the original constants saturated
- * the sigmoid (and thus the old 38~62 clamp) on almost every real draft with a mixed-skill friend group. */
+const NEUTRAL_KDA = 2.5;
+
+/** (kills+assists)/deaths from this player's real per-game average in this lane, when we have one —
+ * falls back to a neutral league-average-ish 2.5 so a missing sample doesn't skew the team sum. */
+function kdaRatioOf(entry: TeamEntry): number {
+  const s = entry.player.avgStats;
+  if (!s) return NEUTRAL_KDA;
+  return (s.kills + s.assists) / Math.max(1, s.deaths);
+}
+
+const sigmoidPct = (x: number) => Math.round((1 / (1 + Math.exp(-x / 650))) * 100);
+
+/** Logistic win-rate estimate from MMR + recent-form + real KDA gaps, clamped to a believable 20~80%
+ * band. The divisor/weights are tuned for *real* Riot MMR (roughly 0~4000, unranked through apex),
+ * which spans far wider than the design mock's synthetic 2380~2900 band — the original constants
+ * saturated the sigmoid (and thus the old 38~62 clamp) on almost every real draft with a mixed-skill
+ * friend group. KDA is a secondary signal (small weight) since win-rate and MMR already capture most
+ * of it; it mainly nudges close calls using each player's actual recent kill participation. */
 export function rates(teams: Teams, picks?: ChampPicks): Rates {
   const sum = (t: TeamEntry[]) => t.reduce((a, c) => a + c.player.score, 0);
   const form = (t: TeamEntry[]) => t.reduce((a, c) => a + (effectiveWr(c, picks) - 50), 0);
+  const kda = (t: TeamEntry[]) => t.reduce((a, c) => a + (kdaRatioOf(c) - NEUTRAL_KDA), 0);
   const b = sum(teams.blue);
   const r = sum(teams.red);
   const bf = form(teams.blue);
   const rf = form(teams.red);
-  const diff = b - r + (bf - rf) * 2;
+  const bk = kda(teams.blue);
+  const rk = kda(teams.red);
+
+  const scoreTerm = b - r;
+  const formTerm = (bf - rf) * 2;
+  const kdaTerm = (bk - rk) * 18;
+  const diff = scoreTerm + formTerm + kdaTerm;
   const p = 1 / (1 + Math.exp(-diff / 650));
   const blue = Math.max(20, Math.min(80, Math.round(p * 100)));
   return {
@@ -99,6 +120,13 @@ export function rates(teams: Teams, picks?: ChampPicks): Rates {
     rScore: Math.round(r / 5),
     bForm: Math.round(bf / 5 + 50),
     rForm: Math.round(rf / 5 + 50),
+    bKda: Math.round((teams.blue.reduce((a, c) => a + kdaRatioOf(c), 0) / 5) * 100) / 100,
+    rKda: Math.round((teams.red.reduce((a, c) => a + kdaRatioOf(c), 0) / 5) * 100) / 100,
+    breakdown: {
+      scoreOnlyPct: sigmoidPct(scoreTerm),
+      formOnlyPct: sigmoidPct(formTerm),
+      kdaOnlyPct: sigmoidPct(kdaTerm),
+    },
   };
 }
 

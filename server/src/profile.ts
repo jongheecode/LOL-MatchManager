@@ -115,6 +115,24 @@ export async function buildPlayerProfile(
     .sort((a, b) => b.winRate - a.winRate || b.games - a.games)
     .slice(0, 2);
 
+  // Real per-game average from the sampled matches in this lane (falls back to the full sample
+  // if we couldn't determine a lane at all) — feeds both the win-rate math and the game simulator,
+  // so "예상 승률"/시뮬레이션 KDA are grounded in this specific player's actual recent numbers
+  // instead of a generic role archetype.
+  const statsRecords = byPos.get(mainPos) ?? records;
+  const sum = (pick: (r: RiotMatchParticipant) => number) => statsRecords.reduce((a, r) => a + pick(r), 0);
+  const avgStats: Player['avgStats'] = statsRecords.length
+    ? {
+        games: statsRecords.length,
+        kills: Math.round((sum((r) => r.kills) / statsRecords.length) * 10) / 10,
+        deaths: Math.round((sum((r) => r.deaths) / statsRecords.length) * 10) / 10,
+        assists: Math.round((sum((r) => r.assists) / statsRecords.length) * 10) / 10,
+        cs: Math.round(sum((r) => r.totalMinionsKilled + r.neutralMinionsKilled) / statsRecords.length),
+        damage: Math.round(sum((r) => r.totalDamageDealtToChampions) / statsRecords.length),
+        gold: Math.round(sum((r) => r.goldEarned) / statsRecords.length),
+      }
+    : null;
+
   phase('최근 폼 계산 중...');
   const n = records.length;
   const winRate = (arr: RiotMatchParticipant[]) => (arr.length ? (arr.filter((r) => r.win).length / arr.length) * 100 : 50);
@@ -180,6 +198,7 @@ export async function buildPlayerProfile(
     champs,
     champPool,
     posChampPool,
+    avgStats,
     masteryChamps,
     dangerPicks,
     liveGame,

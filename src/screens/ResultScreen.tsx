@@ -63,7 +63,7 @@ export function ResultScreen({
         </div>
       </div>
 
-      <WinGauge blue={rates.blue} red={rates.red} verdict={verdict} />
+      <WinGauge rates={rates} verdict={verdict} />
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 54px 1fr', gap: 0, alignItems: 'start' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
