@@ -5,6 +5,11 @@ import { posLabel } from '../lib/positions';
 function DraftRow({ entry, accent }: { entry: TeamEntry; accent: string }) {
   const p = entry.player;
   const pick = p.champs[0];
+  // champs/dangerPicks are scoped to the player's real main lane. If they got bumped to an
+  // off-role slot (another teammate had priority on their lane), that data belongs to a
+  // different position than entry.pos — showing it here would read as "ADC who plays Darius".
+  const offRole = !entry.honored;
+
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: '1px solid #16203380' }}>
       <span style={{ width: 30, fontSize: 11, color: '#8b93a7', flex: 'none' }}>{posLabel(entry.pos)}</span>
@@ -20,7 +25,11 @@ function DraftRow({ entry, accent }: { entry: TeamEntry; accent: string }) {
       >
         {p.name}
       </span>
-      {pick ? (
+      {offRole ? (
+        <span style={{ flex: 1, fontSize: 11, color: '#55617a' }}>
+          부포지션 소화 (주 라인 {posLabel(p.mainPos)}) · 이 라인 데이터 없음
+        </span>
+      ) : pick ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
           <ChampIcon champ={pick} size={20} />
           <span style={{ fontSize: 11.5, color: '#b6c0d6', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -30,26 +39,28 @@ function DraftRow({ entry, accent }: { entry: TeamEntry; accent: string }) {
       ) : (
         <span style={{ flex: 1, fontSize: 11.5, color: '#55617a' }}>추천 픽 데이터 없음</span>
       )}
-      <div style={{ display: 'flex', gap: 6, flex: 'none' }}>
-        {entry.player.dangerPicks.map((d) => (
-          <div
-            key={d.champ.name}
-            title={`${d.champ.name} · 최근 ${d.games}전 ${d.winRate}%`}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              background: `${accent}18`,
-              border: `1px solid ${accent}55`,
-              borderRadius: 6,
-              padding: '2px 6px 2px 3px',
-            }}
-          >
-            <ChampIcon champ={d.champ} size={16} />
-            <span style={{ fontSize: 10, color: accent, fontWeight: 700 }}>밴 · {d.winRate}%</span>
-          </div>
-        ))}
-      </div>
+      {!offRole && (
+        <div style={{ display: 'flex', gap: 6, flex: 'none' }}>
+          {entry.player.dangerPicks.map((d) => (
+            <div
+              key={d.champ.name}
+              title={`${d.champ.name} · 최근 ${d.games}전 ${d.winRate}%`}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                background: `${accent}18`,
+                border: `1px solid ${accent}55`,
+                borderRadius: 6,
+                padding: '2px 6px 2px 3px',
+              }}
+            >
+              <ChampIcon champ={d.champ} size={16} />
+              <span style={{ fontSize: 10, color: accent, fontWeight: 700 }}>밴 · {d.winRate}%</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
