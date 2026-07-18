@@ -1,0 +1,3 @@
+[한글 요약] tsbuildinfo 캐시 파일 git 추적 제외
+
+TypeScript 증분 빌드용 로컬 캐시 파일이라 소스 코드가 아님.
