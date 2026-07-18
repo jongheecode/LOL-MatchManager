@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { GameResult, Teams } from '../types';
-import { Logo } from '../components/Logo';
 import { Avatar } from '../components/Avatar';
 import { ChampIcon } from '../components/ChampIcon';
 import { posLabel } from '../lib/positions';
 import { kdaRatio, formatClock } from '../lib/gameSim';
 
-const COLS = '28px 1fr 34px 34px 34px 50px 50px 56px 90px';
+const TICK_MS = 360;
+const BANNER_DELAY_MS = 450;
+const BOARD_DELAY_MS = 1600;
 
 function playerIndex(teams: Teams) {
   const map = new Map<string, { name: string; hue: number; profileIconId: number | null; team: 'blue' | 'red' }>();
@@ -16,248 +17,273 @@ function playerIndex(teams: Teams) {
   return map;
 }
 
-function KillFeed({ teams, result }: { teams: Teams; result: GameResult }) {
-  const index = useMemo(() => playerIndex(teams), [teams]);
-  const statsByPuuid = useMemo(() => new Map(result.stats.map((s) => [s.puuid, s])), [result.stats]);
-  const [visible, setVisible] = useState(0);
-  const feedRef = useRef<HTMLDivElement>(null);
-  const timer = useRef<ReturnType<typeof setInterval>>();
+export function GameResultScreen({
+  teams,
+  result,
+  onBackToResult,
+  onReset,
+}: {
+  teams: Teams;
+  result: GameResult;
+  onBackToResult: () => void;
+  onReset: () => void;
+}) {
+  const index = playerIndex(teams);
+  const statsByPuuid = new Map(result.stats.map((s) => [s.puuid, s]));
+  const maxDamage = Math.max(1, ...result.stats.map((s) => s.damage));
 
-  const play = () => {
-    setVisible(0);
+  const [revealedCount, setRevealedCount] = useState(0);
+  const [showBanner, setShowBanner] = useState(false);
+  const [showBoard, setShowBoard] = useState(false);
+  const timer = useRef<ReturnType<typeof setInterval>>();
+  const timeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const runSim = () => {
     clearInterval(timer.current);
+    timeouts.current.forEach(clearTimeout);
+    timeouts.current = [];
+    setRevealedCount(0);
+    setShowBanner(false);
+    setShowBoard(false);
     timer.current = setInterval(() => {
-      setVisible((v) => {
-        if (v >= result.events.length) {
+      setRevealedCount((c) => {
+        if (c >= result.events.length) {
           clearInterval(timer.current);
-          return v;
+          timeouts.current.push(setTimeout(() => setShowBanner(true), BANNER_DELAY_MS));
+          timeouts.current.push(setTimeout(() => setShowBoard(true), BOARD_DELAY_MS));
+          return c;
         }
-        return v + 1;
+        return c + 1;
       });
-    }, 420);
+    }, TICK_MS);
   };
 
   useEffect(() => {
-    play();
-    return () => clearInterval(timer.current);
+    runSim();
+    return () => {
+      clearInterval(timer.current);
+      timeouts.current.forEach(clearTimeout);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result]);
 
-  useEffect(() => {
-    if (feedRef.current) feedRef.current.scrollTop = feedRef.current.scrollHeight;
-  }, [visible]);
-
-  const done = visible >= result.events.length;
+  const shown = result.events.slice(0, revealedCount);
+  const blueScore = shown.filter((e) => e.team === 'blue').length;
+  const redScore = shown.filter((e) => e.team === 'red').length;
+  const lastT = revealedCount > 0 ? shown[revealedCount - 1].t : 0;
+  const clock = showBoard ? result.durationSec : lastT;
+  const winnerColor = result.winner === 'blue' ? '#5aa9ff' : '#f0656a';
 
   return (
-    <div style={{ background: '#0f1524', border: '1px solid #1e2740', borderRadius: 14, overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 16px', borderBottom: '1px solid #1e2740' }}>
-        <span style={{ fontSize: 12.5, fontWeight: 700, color: '#e8ebf3' }}>킬 피드</span>
-        {!done && <span style={{ fontSize: 10.5, color: '#d8b463', animation: 'pulse 1.2s infinite' }}>재생 중...</span>}
-        {done && (
-          <button
-            type="button"
-            onClick={play}
-            style={{ background: 'transparent', border: '1px solid #2a3350', color: '#8b93a7', fontSize: 10.5, padding: '3px 9px', borderRadius: 6, cursor: 'pointer' }}
-          >
-            다시보기
-          </button>
-        )}
+    <div style={{ maxWidth: 1180, margin: '0 auto', padding: '26px 40px 44px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 30, marginBottom: 6 }}>
+        <span style={{ fontFamily: 'Rajdhani', fontWeight: 700, fontSize: 15, letterSpacing: 3, color: '#5aa9ff' }}>BLUE</span>
+        <span style={{ fontFamily: "'IBM Plex Mono'", fontWeight: 600, fontSize: 52, color: '#5aa9ff', lineHeight: 1, minWidth: 60, textAlign: 'right' }}>
+          {blueScore}
+        </span>
+        <span style={{ fontFamily: 'Rajdhani', fontSize: 26, color: '#4a5573' }}>:</span>
+        <span style={{ fontFamily: "'IBM Plex Mono'", fontWeight: 600, fontSize: 52, color: '#f0656a', lineHeight: 1, minWidth: 60 }}>{redScore}</span>
+        <span style={{ fontFamily: 'Rajdhani', fontWeight: 700, fontSize: 15, letterSpacing: 3, color: '#f0656a' }}>RED</span>
       </div>
-      <div ref={feedRef} style={{ maxHeight: 220, overflowY: 'auto', padding: '8px 14px' }}>
-        {result.events.slice(0, visible).map((ev, i) => {
+      <div style={{ textAlign: 'center', fontFamily: "'IBM Plex Mono'", fontSize: 13, color: '#8b93a7', marginBottom: 18 }}>
+        경기 시간 <span style={{ color: '#d8b463' }}>{formatClock(clock)}</span> / {formatClock(result.durationSec)}
+      </div>
+
+      {/* timeline */}
+      <div style={{ position: 'relative', height: 34, marginBottom: 20, background: '#0d1424', border: '1px solid #1e2740', borderRadius: 10 }}>
+        <div style={{ position: 'absolute', top: '50%', left: 12, right: 12, height: 2, transform: 'translateY(-50%)', background: '#182036' }} />
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            width: 2,
+            background: '#e6c574',
+            boxShadow: '0 0 10px #e6c574',
+            transition: 'left .3s ease',
+            left: `${((clock / result.durationSec) * 100).toFixed(2)}%`,
+          }}
+        />
+        {result.events.map((ev, i) => {
+          const revealed = i < revealedCount;
+          const col = ev.team === 'blue' ? '#5aa9ff' : '#f0656a';
+          const size = revealed ? 9 : 6;
+          return (
+            <div
+              key={i}
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: `${((ev.t / result.durationSec) * 100).toFixed(2)}%`,
+                transform: 'translate(-50%,-50%) rotate(45deg)',
+                width: size,
+                height: size,
+                background: revealed ? col : '#2a3350',
+                transition: 'all .3s',
+                boxShadow: revealed ? `0 0 6px ${col}` : undefined,
+              }}
+            />
+          );
+        })}
+      </div>
+
+      {/* kill feed */}
+      <div style={{ background: '#0c1220', border: '1px solid #1a2236', borderRadius: 14, padding: '12px 16px 16px', height: 296, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'hidden' }}>
+        {shown.map((ev, i) => {
           const killer = index.get(ev.killerPuuid);
           const victim = index.get(ev.victimPuuid);
-          const killerChamp = statsByPuuid.get(ev.killerPuuid)?.champ;
-          const victimChamp = statsByPuuid.get(ev.victimPuuid)?.champ;
-          const accent = ev.team === 'blue' ? '#5aa9ff' : '#f0656a';
-          if (!killer || !victim || !killerChamp || !victimChamp) return null;
+          const col = ev.team === 'blue' ? '#5aa9ff' : '#f0656a';
+          if (!killer || !victim) return null;
           return (
             <div
               key={i}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 8,
-                padding: '5px 8px',
-                marginBottom: 4,
-                borderRadius: 8,
-                borderLeft: `2px solid ${accent}`,
-                background: '#0b1120',
-                animation: 'fadeUp .3s',
-                fontSize: 11.5,
+                gap: 10,
+                padding: '8px 12px',
+                borderRadius: 9,
+                marginTop: 7,
+                flex: 'none',
+                background: `linear-gradient(90deg, ${ev.team === 'blue' ? 'rgba(90,169,255,.13)' : 'rgba(240,101,106,.13)'}, transparent)`,
+                borderLeft: `3px solid ${col}`,
+                animation: 'killIn .45s ease both',
               }}
             >
-              <span style={{ fontFamily: "'IBM Plex Mono'", color: '#6f7b96', flex: 'none', width: 38 }}>{formatClock(ev.t)}</span>
-              <ChampIcon champ={killerChamp} size={18} />
-              <span style={{ color: accent, fontWeight: 600, whiteSpace: 'nowrap' }}>{killer.name}</span>
-              <span style={{ color: '#4a5573' }}>⚔</span>
-              <ChampIcon champ={victimChamp} size={18} />
-              <span style={{ color: '#8b93a7', whiteSpace: 'nowrap' }}>{victim.name}</span>
-              {ev.assistPuuids.length > 0 && (
-                <span style={{ color: '#55617a', fontSize: 10.5, marginLeft: 'auto', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  어시스트 {ev.assistPuuids.map((a) => index.get(a)?.name).filter(Boolean).join(', ')}
+              <span style={{ fontFamily: "'IBM Plex Mono'", fontSize: 11, color: '#6f7b96', width: 40, flex: 'none' }}>{formatClock(ev.t)}</span>
+              <Avatar name={killer.name} hue={killer.hue} profileIconId={killer.profileIconId} size={27} radius={7} fontSize={12} />
+              <span style={{ fontSize: 12.5, color: '#dbe1ee', fontWeight: 500 }}>{killer.name}</span>
+              <span style={{ fontSize: 15, color: col }}>⚔</span>
+              <div style={{ filter: 'grayscale(.55)', opacity: 0.75 }}>
+                <Avatar name={victim.name} hue={victim.hue} profileIconId={victim.profileIconId} size={27} radius={7} fontSize={12} />
+              </div>
+              <span style={{ fontSize: 12.5, color: '#8b93a7' }}>{victim.name} 처치</span>
+              <span style={{ flex: 1 }} />
+              {ev.multi && (
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: '#0b0f18',
+                    background: 'linear-gradient(135deg,#e6c574,#c19a3f)',
+                    padding: '2px 8px',
+                    borderRadius: 5,
+                    flex: 'none',
+                  }}
+                >
+                  {ev.multi}
                 </span>
               )}
             </div>
           );
         })}
       </div>
-    </div>
-  );
-}
 
-function TeamTable({ teams, team, result }: { teams: Teams; team: 'blue' | 'red'; result: GameResult }) {
-  const accent = team === 'blue' ? '#5aa9ff' : '#f0656a';
-  const won = result.winner === team;
-  const rows = teams[team];
-  const teamKills = team === 'blue' ? result.blueKills : result.redKills;
-  // A team's total deaths is exactly the *other* team's total kills — every kill has one death,
-  // no self-inflicted ones — so this always cross-checks against the opposing team's kill number.
-  const teamDeaths = rows.reduce((a, e) => a + (result.stats.find((s) => s.puuid === e.player.puuid)?.deaths ?? 0), 0);
-  const maxDamage = Math.max(...result.stats.map((s) => s.damage));
-
-  return (
-    <div style={{ background: '#0f1524', border: `1px solid ${won ? `${accent}55` : '#1e2740'}`, borderRadius: 14, overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 16px', background: won ? `${accent}14` : 'transparent' }}>
-        <span style={{ fontFamily: 'Rajdhani', fontWeight: 700, fontSize: 14, letterSpacing: 2, color: accent }}>{team === 'blue' ? 'BLUE' : 'RED'}</span>
-        <span style={{ fontFamily: "'IBM Plex Mono'", fontSize: 12, color: '#8b93a7' }}>
-          킬 <span style={{ color: accent, fontWeight: 700 }}>{teamKills}</span> · 데스 <span style={{ color: '#f0797d', fontWeight: 700 }}>{teamDeaths}</span>
-        </span>
-        <span style={{ fontSize: 11.5, fontWeight: 700, color: won ? accent : '#55617a' }}>{won ? '승리' : '패배'}</span>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: 6, padding: '6px 16px', fontSize: 10, color: '#55617a' }}>
-        <span />
-        <span>플레이어 / 챔피언</span>
-        <span style={{ textAlign: 'center' }}>K</span>
-        <span style={{ textAlign: 'center' }}>D</span>
-        <span style={{ textAlign: 'center' }}>A</span>
-        <span style={{ textAlign: 'center' }}>KDA</span>
-        <span style={{ textAlign: 'right' }}>CS</span>
-        <span style={{ textAlign: 'right' }}>골드</span>
-        <span style={{ textAlign: 'right' }}>딜량</span>
-      </div>
-      {rows.map((entry) => {
-        const stat = result.stats.find((s) => s.puuid === entry.player.puuid)!;
-        const isMvp = stat.puuid === result.mvpPuuid;
-        const ratio = kdaRatio(stat);
-        return (
+      {showBanner && (
+        <div style={{ textAlign: 'center', margin: '26px 0 4px', animation: 'bannerIn .6s cubic-bezier(.2,1.3,.4,1) both' }}>
+          <div style={{ fontFamily: 'Rajdhani', fontWeight: 700, fontSize: 15, letterSpacing: 8, color: '#8b93a7' }}>VICTORY</div>
           <div
-            key={entry.pos}
             style={{
-              display: 'grid',
-              gridTemplateColumns: COLS,
-              alignItems: 'center',
-              gap: 6,
-              padding: '9px 16px',
-              borderTop: '1px solid #16203380',
-              background: isMvp ? 'rgba(216,180,99,.06)' : 'transparent',
+              fontFamily: 'Rajdhani',
+              fontWeight: 700,
+              fontSize: 56,
+              letterSpacing: 2,
+              color: winnerColor,
+              textShadow: `0 0 34px ${winnerColor}`,
+              lineHeight: 1.15,
             }}
           >
-            <span style={{ fontSize: 10, color: '#6f7b96' }}>{posLabel(entry.pos)}</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-              <Avatar name={entry.player.name} hue={entry.player.hue} profileIconId={entry.player.profileIconId} size={28} radius={7} fontSize={12} />
-              <ChampIcon champ={stat.champ} size={20} />
-              <div style={{ minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12.5, color: '#dbe1ee', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {isMvp && <span title="MVP">👑</span>}
-                  {entry.player.name}
-                </div>
-                <div style={{ fontSize: 10, color: '#7f8aa3', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{stat.champ.name}</div>
-              </div>
-            </div>
-            <span style={{ textAlign: 'center', fontFamily: "'IBM Plex Mono'", fontSize: 13, color: '#dbe1ee' }}>{stat.kills}</span>
-            <span style={{ textAlign: 'center', fontFamily: "'IBM Plex Mono'", fontSize: 13, color: '#f0797d' }}>{stat.deaths}</span>
-            <span style={{ textAlign: 'center', fontFamily: "'IBM Plex Mono'", fontSize: 13, color: '#dbe1ee' }}>{stat.assists}</span>
-            <span style={{ textAlign: 'center', fontFamily: "'IBM Plex Mono'", fontSize: 12, fontWeight: 700, color: ratio >= 4 ? '#4fd18a' : ratio >= 2 ? '#c8cede' : '#f0797d' }}>
-              {ratio.toFixed(1)}
-            </span>
-            <span style={{ textAlign: 'right', fontFamily: "'IBM Plex Mono'", fontSize: 12, color: '#8b93a7' }}>{stat.cs}</span>
-            <span style={{ textAlign: 'right', fontFamily: "'IBM Plex Mono'", fontSize: 11.5, color: '#d8b463' }}>{(stat.gold / 1000).toFixed(1)}k</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <div style={{ flex: 1, height: 5, background: '#131a29', borderRadius: 3, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${(stat.damage / maxDamage) * 100}%`, background: accent, borderRadius: 3 }} />
-              </div>
-              <span style={{ fontFamily: "'IBM Plex Mono'", fontSize: 10, color: '#8b93a7', width: 30, textAlign: 'right' }}>{Math.round(stat.damage / 1000)}k</span>
-            </div>
+            {result.winner === 'blue' ? 'BLUE' : 'RED'} 팀 승리
           </div>
-        );
-      })}
-    </div>
-  );
-}
-
-export function GameResultScreen({
-  teams,
-  result,
-  onResimulate,
-  onBackToResult,
-  onReset,
-}: {
-  teams: Teams;
-  result: GameResult;
-  onResimulate: () => void;
-  onBackToResult: () => void;
-  onReset: () => void;
-}) {
-  const accent = result.winner === 'blue' ? '#5aa9ff' : '#f0656a';
-
-  return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 40px 60px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-        <Logo size={34} fontSize={17} />
-        <div style={{ fontFamily: 'Rajdhani', fontWeight: 700, fontSize: 20, letterSpacing: 0.5 }}>게임 결과</div>
-        <span style={{ fontSize: 11, color: '#55617a' }}>(재미로 보는 가상 시뮬레이션)</span>
-      </div>
-
-      <div
-        style={{
-          textAlign: 'center',
-          padding: '26px 20px',
-          marginBottom: 22,
-          borderRadius: 16,
-          background: `linear-gradient(160deg, ${accent}22, #0d1220)`,
-          border: `1px solid ${accent}55`,
-        }}
-      >
-        <div style={{ fontSize: 12, letterSpacing: 3, color: accent, fontWeight: 700, marginBottom: 6 }}>
-          {result.winner === 'blue' ? 'BLUE TEAM' : 'RED TEAM'}
         </div>
-        <div style={{ fontFamily: 'Rajdhani', fontWeight: 700, fontSize: 40, color: '#eef2fb', letterSpacing: 2 }}>VICTORY</div>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'baseline', gap: 14, marginTop: 10 }}>
-          <span style={{ fontFamily: "'IBM Plex Mono'", fontSize: 22, fontWeight: 600, color: '#5aa9ff' }}>{result.blueKills}</span>
-          <span style={{ fontSize: 12, color: '#55617a' }}>KILLS</span>
-          <span style={{ fontFamily: "'IBM Plex Mono'", fontSize: 22, fontWeight: 600, color: '#f0656a' }}>{result.redKills}</span>
-          <span style={{ fontSize: 12, color: '#55617a', marginLeft: 12 }}>{formatClock(result.durationSec)} 경기 시간</span>
+      )}
+
+      {showBoard && (
+        <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, animation: 'fadeUp .4s both' }}>
+          {(['blue', 'red'] as const).map((team) => {
+            const accent = team === 'blue' ? '#5aa9ff' : '#f0656a';
+            const bg = team === 'blue' ? 'rgba(47,95,176,.1)' : 'rgba(176,53,58,.1)';
+            const headerBg = team === 'blue' ? 'rgba(90,169,255,.07)' : 'rgba(240,101,106,.07)';
+            const border = team === 'blue' ? 'rgba(90,169,255,.22)' : 'rgba(240,101,106,.22)';
+            return (
+              <div key={team} style={{ background: `linear-gradient(160deg, ${bg}, #0d1220)`, border: `1px solid ${border}`, borderRadius: 13, overflow: 'hidden' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 15px', background: headerBg }}>
+                  <span style={{ fontFamily: 'Rajdhani', fontWeight: 700, letterSpacing: 2, color: accent }}>{team === 'blue' ? 'BLUE TEAM' : 'RED TEAM'}</span>
+                  <span style={{ fontFamily: "'IBM Plex Mono'", fontSize: 11, color: '#6f7b96' }}>KDA · CS · 골드</span>
+                </div>
+                {teams[team].map((entry) => {
+                  const stat = statsByPuuid.get(entry.player.puuid)!;
+                  const isMvp = stat.puuid === result.mvpPuuid;
+                  const ratio = kdaRatio(stat);
+                  return (
+                    <div key={entry.pos} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 14px', borderTop: '1px solid #131b2c' }}>
+                      <ChampIcon champ={stat.champ} size={34} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                          <span style={{ fontSize: 12.5, color: '#e8ebf3', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 108 }}>
+                            {entry.player.name}
+                          </span>
+                          {isMvp && (
+                            <span
+                              style={{
+                                fontSize: 8.5,
+                                fontWeight: 700,
+                                color: '#0b0f18',
+                                background: 'linear-gradient(135deg,#e6c574,#c19a3f)',
+                                padding: '1px 6px',
+                                borderRadius: 4,
+                                letterSpacing: 0.5,
+                              }}
+                            >
+                              MVP
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 5 }}>
+                          <span style={{ fontSize: 9, color: '#6f7b96', width: 28, flex: 'none' }}>{posLabel(entry.pos)}</span>
+                          <div style={{ flex: 1, height: 5, background: '#131a29', borderRadius: 4, overflow: 'hidden' }}>
+                            <div style={{ height: '100%', borderRadius: 4, width: `${(stat.damage / maxDamage) * 100}%`, background: accent }} />
+                          </div>
+                          <span style={{ fontFamily: "'IBM Plex Mono'", fontSize: 10, color: '#8b93a7', width: 50, textAlign: 'right', flex: 'none' }}>
+                            {stat.damage.toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'center', flex: 'none', width: 62 }}>
+                        <div style={{ fontFamily: "'IBM Plex Mono'", fontSize: 13, color: '#dbe1ee' }}>
+                          {stat.kills}/{stat.deaths}/{stat.assists}
+                        </div>
+                        <div style={{ fontSize: 9, color: '#6f7b96' }}>KDA {ratio.toFixed(1)}</div>
+                      </div>
+                      <div style={{ textAlign: 'right', flex: 'none', width: 58 }}>
+                        <div style={{ fontFamily: "'IBM Plex Mono'", fontSize: 12, color: '#d8b463' }}>{stat.gold.toLocaleString()}</div>
+                        <div style={{ fontSize: 9, color: '#6f7b96' }}>{stat.cs} CS</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
         </div>
-      </div>
+      )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <KillFeed teams={teams} result={result} />
-        <TeamTable teams={teams} team="blue" result={result} />
-        <TeamTable teams={teams} team="red" result={result} />
-      </div>
-
-      <div style={{ marginTop: 24, display: 'flex', justifyContent: 'center', gap: 12 }}>
+      <div style={{ marginTop: 22, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12 }}>
         <button
           type="button"
-          onClick={onResimulate}
+          onClick={runSim}
           style={{ background: '#151c2d', border: '1px solid #2a3350', color: '#dbe1ee', padding: '13px 22px', borderRadius: 11, fontSize: 14, fontWeight: 500, cursor: 'pointer' }}
         >
-          다시 시뮬레이션
+          다시 보기
         </button>
         <button
           type="button"
           onClick={onBackToResult}
-          style={{ background: 'linear-gradient(140deg, #e6c574, #c19a3f)', border: 'none', color: '#0b0f18', padding: '13px 24px', borderRadius: 11, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+          style={{ background: 'linear-gradient(140deg, #e6c574, #c19a3f)', border: 'none', color: '#0b0f18', padding: '13px 26px', borderRadius: 11, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
         >
-          매칭 결과로 돌아가기
+          결과 화면으로
         </button>
-        <button
-          type="button"
-          onClick={onReset}
-          style={{ background: 'transparent', border: '1px solid #2a3350', color: '#8b93a7', padding: '13px 22px', borderRadius: 11, fontSize: 14, cursor: 'pointer' }}
-        >
+        <button type="button" onClick={onReset} style={{ background: 'transparent', border: 'none', color: '#6f7b96', padding: '13px 10px', fontSize: 13, cursor: 'pointer' }}>
           처음으로
         </button>
       </div>

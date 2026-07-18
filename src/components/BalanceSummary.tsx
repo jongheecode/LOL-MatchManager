@@ -1,39 +1,65 @@
-import type { Rates, Teams } from '../types';
+import type { ChampPicks } from '../lib/balance';
+import { effectiveWr } from '../lib/balance';
+import { tierFromScore } from '../lib/tier';
 import { POSITION_ORDER, posLabel } from '../lib/positions';
+import type { Rates, TeamEntry, Teams } from '../types';
+
+function clamp(v: number, lo: number, hi: number) {
+  return Math.max(lo, Math.min(hi, v));
+}
 
 export function BalanceSummary({
   teams,
   rates,
+  picks,
   open,
   onToggle,
 }: {
   teams: Teams;
   rates: Rates;
+  picks: ChampPicks;
   open: boolean;
   onToggle: () => void;
 }) {
-  const maxS = Math.max(rates.bScore, rates.rScore) || 1;
-  const sGap = Math.abs(rates.bScore - rates.rScore);
-  const scoreVerdict =
-    sGap < 40 ? `평균 MMR 차이 ${sGap}점 — 거의 동일` : `평균 MMR 차이 ${sGap}점 (${rates.bScore > rates.rScore ? '블루' : '레드'} 우세)`;
+  const sgap = Math.abs(rates.bScore - rates.rScore);
+  const fgap = Math.abs(rates.bForm - rates.rForm);
+  const gap = Math.abs(rates.blue - rates.red);
+  const honored = [...teams.blue, ...teams.red].filter((c) => c.honored).length;
 
-  const coverage = POSITION_ORDER.map((pos) => {
+  const summaryLines = [
+    `양 팀 평균 티어는 블루 ${tierFromScore(rates.bScore).name} · 레드 ${tierFromScore(rates.rScore).name}로 ${
+      sgap < 40 ? '사실상 동일한 실력대입니다' : rates.bScore > rates.rScore ? '블루가 근소하게 높습니다' : '레드가 근소하게 높습니다'
+    }.`,
+    `최근 전적 폼은 블루 ${rates.bForm}% · 레드 ${rates.rForm}%로 ${
+      fgap < 3 ? '대등합니다' : rates.bForm > rates.rForm ? '블루가 살짝 상승세입니다' : '레드가 살짝 상승세입니다'
+    }.`,
+    `평균 KDA는 블루 ${rates.bKda.toFixed(2)} · 레드 ${rates.rKda.toFixed(2)}로, 승률 계산에 보조 지표로 반영됩니다.`,
+    `스네이크 드래프트로 상위 실력자를 양 팀에 나눠 배치해 예상 승률 격차를 ${gap}%p로 맞췄습니다.`,
+    `10명 중 ${honored}명이 주 포지션에 배정됐고, 전 라인이 빈틈없이 채워졌습니다.`,
+  ];
+
+  const lineMatchups = POSITION_ORDER.map((pos) => {
     const b = teams.blue.find((c) => c.pos === pos)!;
     const r = teams.red.find((c) => c.pos === pos)!;
+    const strength = (c: TeamEntry) => c.player.score + (effectiveWr(c, picks) - 50) * 8;
+    const p = 1 / (1 + Math.exp(-(strength(b) - strength(r)) / 300));
+    const bluePct = clamp(Math.round(p * 100), 30, 70);
+    const redPct = 100 - bluePct;
+    const favorGap = Math.abs(bluePct - 50);
+    const favorLabel = favorGap <= 4 ? '백중세' : bluePct > 50 ? '블루 우세' : '레드 우세';
+    const favorColor = favorGap <= 4 ? '#d8b463' : bluePct > 50 ? '#5aa9ff' : '#f0656a';
     return {
-      label: posLabel(pos),
+      pos,
       blueName: b.player.name,
+      blueSub: `${tierFromScore(b.player.score).name} · 폼 ${b.player.form.wr}%`,
       redName: r.player.name,
-      blueDot: b.honored ? '#5aa9ff' : '#3a445e',
-      redDot: r.honored ? '#f0656a' : '#3a445e',
+      redSub: `${tierFromScore(r.player.score).name} · 폼 ${r.player.form.wr}%`,
+      bluePct,
+      redPct,
+      favorLabel,
+      favorColor,
     };
   });
-  const honoredCount = [...teams.blue, ...teams.red].filter((c) => c.honored).length;
-  const honoredPct = Math.round((honoredCount / 10) * 100);
-
-  const maxF = Math.max(rates.bForm, rates.rForm) || 1;
-  const formVerdict =
-    Math.abs(rates.bForm - rates.rForm) < 3 ? '양 팀 최근 폼 대등' : `${rates.bForm > rates.rForm ? '블루' : '레드'}팀 최근 폼이 조금 더 좋음`;
 
   return (
     <div style={{ marginTop: 22, background: '#0f1524', border: '1px solid #1e2740', borderRadius: 14, overflow: 'hidden' }}>
@@ -68,77 +94,59 @@ export function BalanceSummary({
         </span>
       </button>
       {open && (
-        <div style={{ padding: '4px 20px 20px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, animation: 'fadeUp .25s' }}>
-          <div style={{ background: '#0b1120', border: '1px solid #1a2236', borderRadius: 11, padding: 15 }}>
-            <div style={{ fontSize: 11.5, color: '#6f7b96', marginBottom: 12, letterSpacing: 0.3 }}>평균 티어 점수 (MMR)</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ width: 34, fontSize: 11, color: '#5aa9ff', fontWeight: 600 }}>BLUE</span>
-                <div style={{ flex: 1, height: 7, background: '#131a29', borderRadius: 5, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', background: '#5aa9ff', width: `${(rates.bScore / maxS) * 100}%` }} />
-                </div>
-                <span style={{ fontFamily: "'IBM Plex Mono'", fontSize: 13, color: '#dbe1ee', width: 44, textAlign: 'right' }}>
-                  {rates.bScore}
-                </span>
+        <div style={{ padding: '4px 20px 22px', animation: 'fadeUp .25s' }}>
+          <div style={{ background: '#0b1120', border: '1px solid #1a2236', borderRadius: 11, padding: '15px 18px', marginBottom: 16 }}>
+            {summaryLines.map((text, i) => (
+              <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 13, color: '#c8cede', lineHeight: 1.6, marginTop: i === 0 ? 0 : 7 }}>
+                <span style={{ color: '#d8b463', flex: 'none', fontSize: 9, marginTop: 5 }}>◆</span>
+                <span>{text}</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ width: 34, fontSize: 11, color: '#f0656a', fontWeight: 600 }}>RED</span>
-                <div style={{ flex: 1, height: 7, background: '#131a29', borderRadius: 5, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', background: '#f0656a', width: `${(rates.rScore / maxS) * 100}%` }} />
-                </div>
-                <span style={{ fontFamily: "'IBM Plex Mono'", fontSize: 13, color: '#dbe1ee', width: 44, textAlign: 'right' }}>
-                  {rates.rScore}
-                </span>
-              </div>
-            </div>
-            <div style={{ marginTop: 12, fontSize: 11.5, color: '#7f8aa3' }}>{scoreVerdict}</div>
+            ))}
           </div>
-
-          <div style={{ background: '#0b1120', border: '1px solid #1a2236', borderRadius: 11, padding: 15 }}>
-            <div style={{ fontSize: 11.5, color: '#6f7b96', marginBottom: 12, letterSpacing: 0.3 }}>포지션 커버리지</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-              {coverage.map((cv) => (
-                <div key={cv.label} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-                  <span style={{ width: 30, color: '#8b93a7' }}>{cv.label}</span>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', flex: 'none', background: cv.blueDot }} />
-                  <span style={{ flex: 1, color: '#b6c0d6', fontSize: 11 }}>{cv.blueName}</span>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', flex: 'none', background: cv.redDot }} />
-                  <span style={{ flex: 1, color: '#b6c0d6', fontSize: 11, textAlign: 'right' }}>{cv.redName}</span>
-                </div>
-              ))}
-            </div>
-            <div style={{ marginTop: 12, fontSize: 11.5, color: '#7f8aa3' }}>주포지션 배정 {honoredPct}% · 전 라인 충족</div>
+          <div style={{ fontSize: 11.5, color: '#6f7b96', margin: '0 2px 10px', letterSpacing: 0.3 }}>
+            라인 상대 밸런스 <span style={{ color: '#55617a' }}>· 최근 전적 · 티어 기반 예상</span>
           </div>
-
-          <div style={{ background: '#0b1120', border: '1px solid #1a2236', borderRadius: 11, padding: 15 }}>
-            <div style={{ fontSize: 11.5, color: '#6f7b96', marginBottom: 12, letterSpacing: 0.3 }}>최근 폼 비교</div>
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 30, height: 92 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, justifyContent: 'flex-end', height: '100%' }}>
-                <span style={{ fontFamily: "'IBM Plex Mono'", fontSize: 13, color: '#5aa9ff' }}>{rates.bForm}%</span>
-                <div
-                  style={{
-                    width: 34,
-                    background: 'linear-gradient(#5aa9ff, #2f5fb0)',
-                    borderRadius: '5px 5px 0 0',
-                    height: `${(rates.bForm / maxF) * 70}px`,
-                  }}
-                />
-                <span style={{ fontSize: 11, color: '#5aa9ff', fontWeight: 600 }}>BLUE</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {lineMatchups.map((m) => (
+              <div
+                key={m.pos}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 210px 1fr',
+                  gap: 16,
+                  alignItems: 'center',
+                  background: '#0b1120',
+                  border: '1px solid #1a2236',
+                  borderRadius: 10,
+                  padding: '10px 16px',
+                }}
+              >
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 13, color: '#dbe1ee', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.blueName}</div>
+                  <div style={{ fontFamily: "'IBM Plex Mono'", fontSize: 10.5, color: '#7f8aa3', marginTop: 2 }}>{m.blueSub}</div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#8b93a7', background: '#171f30', padding: '2px 7px', borderRadius: 5, letterSpacing: 0.5 }}>
+                      {posLabel(m.pos)}
+                    </span>
+                    <span style={{ fontSize: 10.5, color: m.favorColor, fontWeight: 600, whiteSpace: 'nowrap' }}>{m.favorLabel}</span>
+                  </div>
+                  <div style={{ width: '100%', height: 6, background: '#131a29', borderRadius: 4, overflow: 'hidden', display: 'flex' }}>
+                    <div style={{ height: '100%', background: '#5aa9ff', width: `${m.bluePct}%` }} />
+                    <div style={{ height: '100%', flex: 1, background: '#f0656a' }} />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontFamily: "'IBM Plex Mono'", fontSize: 10 }}>
+                    <span style={{ color: '#5aa9ff' }}>{m.bluePct}%</span>
+                    <span style={{ color: '#f0656a' }}>{m.redPct}%</span>
+                  </div>
+                </div>
+                <div style={{ minWidth: 0, textAlign: 'right' }}>
+                  <div style={{ fontSize: 13, color: '#dbe1ee', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.redName}</div>
+                  <div style={{ fontFamily: "'IBM Plex Mono'", fontSize: 10.5, color: '#7f8aa3', marginTop: 2 }}>{m.redSub}</div>
+                </div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, justifyContent: 'flex-end', height: '100%' }}>
-                <span style={{ fontFamily: "'IBM Plex Mono'", fontSize: 13, color: '#f0656a' }}>{rates.rForm}%</span>
-                <div
-                  style={{
-                    width: 34,
-                    background: 'linear-gradient(#f0656a, #b0353a)',
-                    borderRadius: '5px 5px 0 0',
-                    height: `${(rates.rForm / maxF) * 70}px`,
-                  }}
-                />
-                <span style={{ fontSize: 11, color: '#f0656a', fontWeight: 600 }}>RED</span>
-              </div>
-            </div>
-            <div style={{ marginTop: 8, fontSize: 11.5, color: '#7f8aa3', textAlign: 'center' }}>{formVerdict}</div>
+            ))}
           </div>
         </div>
       )}

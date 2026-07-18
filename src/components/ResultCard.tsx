@@ -37,10 +37,17 @@ export function ResultCard({
   const p = entry.player;
   const accent = team === 'blue' ? '#5aa9ff' : '#f0656a';
   const pool = champPoolFor(entry);
-  const selectedStat = selectedChamp ? pool.find((c) => c.champ.name === selectedChamp.name) : null;
-  const wr = effectiveWr(entry, selectedChamp ? { [p.puuid]: selectedChamp } : undefined);
+  // Nothing explicitly picked yet still resolves to the top pool champ (same fallback the win-rate
+  // math and the simulator use) — so the highlighted circle always matches what would actually play.
+  const effectiveSelected = selectedChamp ?? pool[0]?.champ ?? null;
+  const selectedStat = effectiveSelected ? pool.find((c) => c.champ.name === effectiveSelected.name) : null;
+  const wr = effectiveWr(entry, effectiveSelected ? { [p.puuid]: effectiveSelected } : undefined);
   const wrColor = wr >= 55 ? '#4fd18a' : wr < 50 ? '#f0797d' : '#c8cede';
-  const wrLabel = selectedChamp ? (selectedStat ? `${selectedChamp.name} 실전 승률` : `${selectedChamp.name} 예상 (표본 없음)`) : '최근 전적';
+  const wrLabel = selectedChamp
+    ? selectedStat
+      ? `${selectedChamp.name} 실전 승률`
+      : `${selectedChamp.name} 예상 (표본 없음)`
+    : '최근 전적';
   const reason = reasonText(entry.pos, p, entry.honored, isTop);
   const pColor = posColor(entry.pos);
 
@@ -108,6 +115,51 @@ export function ResultCard({
     </div>
   );
 
+  const champRow = (
+    <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexDirection: team === 'blue' ? 'row' : 'row-reverse' }}>
+      {pool.slice(0, 3).map((c) => {
+        const isSel = effectiveSelected?.name === c.champ.name;
+        return (
+          <button
+            key={c.champ.name}
+            type="button"
+            draggable={false}
+            title={`${c.champ.name} · 실전 승률 ${c.winRate}% (클릭해 픽 지정)`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectChamp(c.champ);
+            }}
+            style={{
+              width: 25,
+              height: 25,
+              borderRadius: '50%',
+              padding: 0,
+              cursor: 'pointer',
+              background: 'transparent',
+              border: 'none',
+              outline: isSel ? '2px solid #e6c574' : 'none',
+              outlineOffset: 1,
+              boxShadow: isSel ? '0 0 9px rgba(216,180,99,.55)' : 'none',
+              opacity: isSel ? 1 : 0.66,
+            }}
+          >
+            <ChampIcon champ={c.champ} size={25} />
+          </button>
+        );
+      })}
+      <ChampionPicker
+        allChampions={allChampions}
+        champPool={pool}
+        selected={selectedChamp}
+        onSelect={onSelectChamp}
+        accent={accent}
+        align={team === 'blue' ? 'left' : 'right'}
+        needsPick={pool.length === 0 && !selectedChamp}
+        compact
+      />
+    </div>
+  );
+
   const wrBlock = (
     <div
       style={{
@@ -122,11 +174,7 @@ export function ResultCard({
         <div style={{ fontFamily: "'IBM Plex Mono'", fontSize: 16, fontWeight: 600, color: wrColor }}>{wr}%</div>
         <div style={{ fontSize: 9.5, color: '#6f7b96', letterSpacing: 0.3, whiteSpace: 'nowrap' }}>{wrLabel}</div>
       </div>
-      <div style={{ display: 'flex', gap: 4 }}>
-        {pool.slice(0, 3).map((c, i) => (
-          <ChampIcon key={c.champ.name + i} champ={c.champ} />
-        ))}
-      </div>
+      {champRow}
     </div>
   );
 
@@ -139,8 +187,8 @@ export function ResultCard({
       onDragEnd={onDragEnd}
       style={{
         display: 'flex',
-        flexDirection: 'column',
-        gap: 10,
+        alignItems: 'center',
+        gap: 13,
         padding: '13px 15px',
         borderRadius: 13,
         background: bg,
@@ -152,45 +200,21 @@ export function ResultCard({
         transform: dragging ? 'scale(.99)' : 'none',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
-        {team === 'blue' ? (
-          <>
-            {posBlock}
-            {avatar}
-            {info}
-            {wrBlock}
-          </>
-        ) : (
-          <>
-            {wrBlock}
-            {info}
-            {avatar}
-            {posBlock}
-          </>
-        )}
-      </div>
-
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: team === 'blue' ? 'flex-start' : 'flex-end',
-          paddingLeft: team === 'blue' ? 45 : 0,
-          paddingRight: team === 'blue' ? 0 : 45,
-          borderTop: '1px solid rgba(255,255,255,.05)',
-          paddingTop: 9,
-        }}
-      >
-        <ChampionPicker
-          allChampions={allChampions}
-          champPool={pool}
-          selected={selectedChamp}
-          onSelect={onSelectChamp}
-          accent={accent}
-          align={team === 'blue' ? 'left' : 'right'}
-          needsPick={pool.length === 0 && !selectedChamp}
-        />
-      </div>
+      {team === 'blue' ? (
+        <>
+          {posBlock}
+          {avatar}
+          {info}
+          {wrBlock}
+        </>
+      ) : (
+        <>
+          {wrBlock}
+          {info}
+          {avatar}
+          {posBlock}
+        </>
+      )}
     </div>
   );
 }

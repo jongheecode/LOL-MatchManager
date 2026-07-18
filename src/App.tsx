@@ -25,7 +25,6 @@ export default function App() {
   const [teams, setTeams] = useState<Teams | null>(null);
   const [dragSrc, setDragSrc] = useState<TeamSlotRef | null>(null);
   const [summaryOpen, setSummaryOpen] = useState(true);
-  const [draftOpen, setDraftOpen] = useState(true);
   const [champPicks, setChampPicks] = useState<ChampPicks>({});
   const [allChampions, setAllChampions] = useState<ChampSummary[]>([]);
   const [gameResult, setGameResult] = useState<GameResult | null>(null);
@@ -170,11 +169,6 @@ export default function App() {
     setScreen('game');
   };
 
-  const resimulate = () => {
-    if (!teams || !rates) return;
-    setGameResult(simulateGame(teams, rates, champPicks));
-  };
-
   const reset = () => {
     setScreen('input');
     setTeams(null);
@@ -218,8 +212,6 @@ export default function App() {
           onDragEnd={onDragEnd}
           summaryOpen={summaryOpen}
           onToggleSummary={() => setSummaryOpen((v) => !v)}
-          draftOpen={draftOpen}
-          onToggleDraft={() => setDraftOpen((v) => !v)}
           champPicks={champPicks}
           onSelectChamp={onSelectChamp}
           allChampions={allChampions}
@@ -230,13 +222,7 @@ export default function App() {
         />
       )}
       {screen === 'game' && teams && gameResult && (
-        <GameResultScreen
-          teams={teams}
-          result={gameResult}
-          onResimulate={resimulate}
-          onBackToResult={() => setScreen('result')}
-          onReset={reset}
-        />
+        <GameResultScreen teams={teams} result={gameResult} onBackToResult={() => setScreen('result')} onReset={reset} />
       )}
       <Toast message={toast} />
     </div>

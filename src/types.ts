@@ -152,6 +152,8 @@ export interface KillEvent {
   killerPuuid: string;
   victimPuuid: string;
   assistPuuids: string[];
+  /** Set when this is the killer's 2nd+ kill within 15s of their last one (더블 킬 / 트리플 킬 / ...). */
+  multi?: string;
 }
 
 /** A just-for-fun simulated match, weighted by the computed win rate — not a real Riot game. */

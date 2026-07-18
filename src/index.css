@@ -77,6 +77,40 @@ button {
     opacity: 1;
   }
 }
+@keyframes killIn {
+  0% {
+    opacity: 0;
+    transform: translateX(-18px);
+  }
+  55% {
+    transform: translateX(3px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes bannerIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.7) translateY(24px);
+  }
+  60% {
+    transform: scale(1.06);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes flashHit {
+  0% {
+    box-shadow: 0 0 0 0 rgba(216, 180, 99, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 0 14px rgba(216, 180, 99, 0);
+  }
+}
 @keyframes gaugeShine {
   0% {
     background-position: -200% 0;

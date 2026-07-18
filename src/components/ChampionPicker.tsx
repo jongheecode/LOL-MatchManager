@@ -10,6 +10,7 @@ export function ChampionPicker({
   accent,
   align,
   needsPick,
+  compact,
 }: {
   allChampions: ChampSummary[];
   champPool: { champ: ChampSummary; games: number; winRate: number }[];
@@ -19,6 +20,8 @@ export function ChampionPicker({
   align: 'left' | 'right';
   /** No real data for this slot at all — nudge the user to pick one manually instead of guessing. */
   needsPick?: boolean;
+  /** Small round "+" trigger (sits next to the quick-pick champ circles) instead of the full pill. */
+  compact?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -57,39 +60,69 @@ export function ChampionPicker({
 
   return (
     <div ref={rootRef} style={{ position: 'relative', display: 'flex', justifyContent: align === 'left' ? 'flex-start' : 'flex-end' }}>
-      <button
-        type="button"
-        draggable={false}
-        onClick={(e) => {
-          e.stopPropagation();
-          setOpen((v) => !v);
-        }}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          cursor: 'pointer',
-          background: selected ? `${accent}1c` : needsPick ? 'rgba(240,121,125,.1)' : '#0b1120',
-          border: `1px solid ${selected ? accent : needsPick ? '#f0797d' : '#232c44'}`,
-          borderRadius: 20,
-          padding: selected ? '3px 10px 3px 3px' : '5px 12px',
-          animation: needsPick ? 'pulse 1.6s ease-in-out infinite' : undefined,
-        }}
-      >
-        {selected ? (
-          <>
-            <ChampIcon champ={selected} size={18} />
-            <span style={{ fontSize: 10.5, color: '#eef2fb', fontWeight: 700 }}>{selected.name}</span>
-            <span style={{ fontFamily: "'IBM Plex Mono'", fontSize: 10, color: accent }}>
-              {selectedStat ? `${selectedStat.winRate}%` : '예상'}
-            </span>
-          </>
-        ) : needsPick ? (
-          <span style={{ fontSize: 10.5, color: '#f0797d', fontWeight: 600 }}>⚠ 챔피언 선택 필요 (이 라인 전적 없음)</span>
-        ) : (
-          <span style={{ fontSize: 10.5, color: '#8b93a7' }}>챔피언 선택 +</span>
-        )}
-      </button>
+      {compact ? (
+        <button
+          type="button"
+          draggable={false}
+          title="다른 챔피언 검색해서 픽 지정"
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpen((v) => !v);
+          }}
+          style={{
+            width: 25,
+            height: 25,
+            flex: 'none',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            background: needsPick ? 'rgba(240,121,125,.12)' : '#0e1524',
+            border: `1px dashed ${needsPick ? '#f0797d' : '#3a445e'}`,
+            color: needsPick ? '#f0797d' : '#8b93a7',
+            fontSize: 13,
+            fontWeight: 700,
+            animation: needsPick ? 'pulse 1.6s ease-in-out infinite' : undefined,
+          }}
+        >
+          +
+        </button>
+      ) : (
+        <button
+          type="button"
+          draggable={false}
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpen((v) => !v);
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            cursor: 'pointer',
+            background: selected ? `${accent}1c` : needsPick ? 'rgba(240,121,125,.1)' : '#0b1120',
+            border: `1px solid ${selected ? accent : needsPick ? '#f0797d' : '#232c44'}`,
+            borderRadius: 20,
+            padding: selected ? '3px 10px 3px 3px' : '5px 12px',
+            animation: needsPick ? 'pulse 1.6s ease-in-out infinite' : undefined,
+          }}
+        >
+          {selected ? (
+            <>
+              <ChampIcon champ={selected} size={18} />
+              <span style={{ fontSize: 10.5, color: '#eef2fb', fontWeight: 700 }}>{selected.name}</span>
+              <span style={{ fontFamily: "'IBM Plex Mono'", fontSize: 10, color: accent }}>
+                {selectedStat ? `${selectedStat.winRate}%` : '예상'}
+              </span>
+            </>
+          ) : needsPick ? (
+            <span style={{ fontSize: 10.5, color: '#f0797d', fontWeight: 600 }}>⚠ 챔피언 선택 필요 (이 라인 전적 없음)</span>
+          ) : (
+            <span style={{ fontSize: 10.5, color: '#8b93a7' }}>챔피언 선택 +</span>
+          )}
+        </button>
+      )}
 
       {open && (
         <div

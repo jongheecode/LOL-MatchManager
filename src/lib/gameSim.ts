@@ -120,6 +120,19 @@ export function simulateGame(teams: Teams, rates: Rates, picks: ChampPicks): Gam
     });
   }
 
+  // Multi-kill labels: a killer's 2nd+ kill within 15s of their previous one streaks up
+  // (더블 킬 → 트리플 킬 → 쿼드라 킬 → 펜타 킬), same idea as LoL's own killstreak system.
+  const MULTI_LABELS: Record<number, string> = { 2: '더블 킬', 3: '트리플 킬', 4: '쿼드라 킬', 5: '펜타 킬' };
+  const lastKillTime = new Map<string, number>();
+  const killStreak = new Map<string, number>();
+  for (const ev of events) {
+    const prev = lastKillTime.get(ev.killerPuuid);
+    const streak = prev != null && ev.t - prev <= 15 ? (killStreak.get(ev.killerPuuid) ?? 1) + 1 : 1;
+    killStreak.set(ev.killerPuuid, streak);
+    lastKillTime.set(ev.killerPuuid, ev.t);
+    if (streak >= 2) ev.multi = MULTI_LABELS[Math.min(5, streak)];
+  }
+
   const minutes = durationSec / 60;
   const stats: PlayerGameStat[] = [];
   (['blue', 'red'] as const).forEach((team) => {

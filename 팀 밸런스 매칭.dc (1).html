@@ -27,6 +27,9 @@
   @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
   @keyframes pop { 0% { transform: scale(.4); opacity: 0; } 70% { transform: scale(1.15); } 100% { transform: scale(1); opacity: 1; } }
   @keyframes gaugeShine { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+  @keyframes killIn { 0% { opacity: 0; transform: translateX(-18px); } 55% { transform: translateX(3px); } 100% { opacity: 1; transform: none; } }
+  @keyframes bannerIn { 0% { opacity: 0; transform: scale(.7) translateY(24px); } 60% { transform: scale(1.06); } 100% { opacity: 1; transform: none; } }
+  @keyframes flashHit { 0% { box-shadow: 0 0 0 0 rgba(216,180,99,.6); } 100% { box-shadow: 0 0 0 14px rgba(216,180,99,0); } }
 </style>
 </helmet>
 <div style="min-height: 100vh; background: radial-gradient(1200px 600px at 50% -10%, #101a2e 0%, #080b13 60%); position: relative;">
@@ -189,7 +192,7 @@
         <div style="width: 34px; height: 34px; background: linear-gradient(140deg, #e6c574, #b98f38); clip-path: polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%); display: flex; align-items: center; justify-content: center;"><span style="font-family: 'Rajdhani'; font-weight: 700; font-size: 17px; color: #0b0f18;">P</span></div>
         <div style="font-family: 'Rajdhani'; font-weight: 700; font-size: 20px; letter-spacing: .5px;">매칭 결과</div>
       </div>
-      <div style="font-size: 12px; color: #6f7b96;">카드를 <span style="color: #d8b463;">드래그</span>해 두 팀 간 스왑하면 승률이 실시간 갱신됩니다</div>
+      <div style="font-size: 12px; color: #6f7b96;">카드 <span style="color: #d8b463;">드래그</span>로 팀 스왑 · 챔피언 아이콘을 눌러 <span style="color: #d8b463;">이번 판 픽</span> 지정 — 승률에 실시간 반영</div>
     </div>
 
     <!-- win gauge -->
@@ -243,7 +246,7 @@
             </div>
             <div style="display: flex; gap: 4px;">
               <sc-for list="{{ c.champs }}" as="ch" hint-placeholder-count="3">
-              <div title="{{ ch.name }}" style="width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 8.5px; font-weight: 700; color: #f2f5fc; border: 1px solid rgba(255,255,255,.14); {{ ch.style }}">{{ ch.abbr }}</div>
+              <div title="{{ ch.title }}" onClick="{{ ch.onClick }}" style="width: 25px; height: 25px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 8.5px; font-weight: 700; color: #f2f5fc; cursor: pointer; border: 1px solid rgba(255,255,255,.14); {{ ch.style }}">{{ ch.abbr }}</div>
               </sc-for>
             </div>
           </div>
@@ -264,7 +267,7 @@
           <div style="flex: none; display: flex; flex-direction: column; align-items: flex-start; gap: 7px;">
             <div style="display: flex; gap: 4px;">
               <sc-for list="{{ c.champs }}" as="ch" hint-placeholder-count="3">
-              <div title="{{ ch.name }}" style="width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 8.5px; font-weight: 700; color: #f2f5fc; border: 1px solid rgba(255,255,255,.14); {{ ch.style }}">{{ ch.abbr }}</div>
+              <div title="{{ ch.title }}" onClick="{{ ch.onClick }}" style="width: 25px; height: 25px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 8.5px; font-weight: 700; color: #f2f5fc; cursor: pointer; border: 1px solid rgba(255,255,255,.14); {{ ch.style }}">{{ ch.abbr }}</div>
               </sc-for>
             </div>
             <div style="text-align: left;">
@@ -300,64 +303,172 @@
         <span style="font-family: 'IBM Plex Mono'; color: #8b93a7; transition: transform .2s; {{ summaryChevron }}">▾</span>
       </button>
       <sc-if value="{{ summaryOpen }}" hint-placeholder-val="{{ true }}">
-      <div style="padding: 4px 20px 20px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; animation: fadeUp .25s;">
-        <div style="background: #0b1120; border: 1px solid #1a2236; border-radius: 11px; padding: 15px;">
-          <div style="font-size: 11.5px; color: #6f7b96; margin-bottom: 12px; letter-spacing: .3px;">평균 티어 점수 (MMR)</div>
-          <div style="display: flex; flex-direction: column; gap: 9px;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <span style="width: 34px; font-size: 11px; color: #5aa9ff; font-weight: 600;">BLUE</span>
-              <div style="flex: 1; height: 7px; background: #131a29; border-radius: 5px; overflow: hidden;"><div style="height: 100%; background: #5aa9ff; {{ bScoreBar }}"></div></div>
-              <span style="font-family: 'IBM Plex Mono'; font-size: 13px; color: #dbe1ee; width: 44px; text-align: right;">{{ bScore }}</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <span style="width: 34px; font-size: 11px; color: #f0656a; font-weight: 600;">RED</span>
-              <div style="flex: 1; height: 7px; background: #131a29; border-radius: 5px; overflow: hidden;"><div style="height: 100%; background: #f0656a; {{ rScoreBar }}"></div></div>
-              <span style="font-family: 'IBM Plex Mono'; font-size: 13px; color: #dbe1ee; width: 44px; text-align: right;">{{ rScore }}</span>
-            </div>
+      <div style="padding: 4px 20px 22px; animation: fadeUp .25s;">
+        <div style="background: #0b1120; border: 1px solid #1a2236; border-radius: 11px; padding: 15px 18px; margin-bottom: 16px;">
+          <sc-for list="{{ summaryLines }}" as="ln" hint-placeholder-count="4">
+          <div style="display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: #c8cede; line-height: 1.6; margin-top: 7px;">
+            <span style="color: #d8b463; flex: none; font-size: 9px; margin-top: 5px;">◆</span>
+            <span style="text-wrap: pretty;">{{ ln.text }}</span>
           </div>
-          <div style="margin-top: 12px; font-size: 11.5px; color: #7f8aa3;">{{ scoreVerdict }}</div>
+          </sc-for>
         </div>
-        <div style="background: #0b1120; border: 1px solid #1a2236; border-radius: 11px; padding: 15px;">
-          <div style="font-size: 11.5px; color: #6f7b96; margin-bottom: 12px; letter-spacing: .3px;">포지션 커버리지</div>
-          <div style="display: flex; flex-direction: column; gap: 7px;">
-            <sc-for list="{{ coverage }}" as="cv" hint-placeholder-count="5">
-            <div style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
-              <span style="width: 30px; color: #8b93a7;">{{ cv.label }}</span>
-              <span style="{{ cv.blueDot }}"></span>
-              <span style="flex: 1; color: #b6c0d6; font-size: 11px;">{{ cv.blueName }}</span>
-              <span style="{{ cv.redDot }}"></span>
-              <span style="flex: 1; color: #b6c0d6; font-size: 11px; text-align: right;">{{ cv.redName }}</span>
+        <div style="font-size: 11.5px; color: #6f7b96; margin: 0 2px 10px; letter-spacing: .3px;">라인 상대 밸런스 <span style="color: #55617a;">· 최근 전적 · 티어 기반 예상</span></div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <sc-for list="{{ lineMatchups }}" as="m" hint-placeholder-count="5">
+          <div style="display: grid; grid-template-columns: 1fr 210px 1fr; gap: 16px; align-items: center; background: #0b1120; border: 1px solid #1a2236; border-radius: 10px; padding: 10px 16px;">
+            <div style="min-width: 0;">
+              <div style="font-size: 13px; color: #dbe1ee; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ m.blueName }}</div>
+              <div style="font-family: 'IBM Plex Mono'; font-size: 10.5px; color: #7f8aa3; margin-top: 2px;">{{ m.blueSub }}</div>
             </div>
-            </sc-for>
-          </div>
-          <div style="margin-top: 12px; font-size: 11.5px; color: #7f8aa3;">주포지션 배정 {{ honoredPct }}% · 전 라인 충족</div>
-        </div>
-        <div style="background: #0b1120; border: 1px solid #1a2236; border-radius: 11px; padding: 15px;">
-          <div style="font-size: 11.5px; color: #6f7b96; margin-bottom: 12px; letter-spacing: .3px;">최근 폼 비교</div>
-          <div style="display: flex; align-items: flex-end; justify-content: center; gap: 30px; height: 92px;">
-            <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; justify-content: flex-end; height: 100%;">
-              <span style="font-family: 'IBM Plex Mono'; font-size: 13px; color: #5aa9ff;">{{ bForm }}%</span>
-              <div style="width: 34px; background: linear-gradient(#5aa9ff, #2f5fb0); border-radius: 5px 5px 0 0; {{ bFormBar }}"></div>
-              <span style="font-size: 11px; color: #5aa9ff; font-weight: 600;">BLUE</span>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 5px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 10px; font-weight: 700; color: #8b93a7; background: #171f30; padding: 2px 7px; border-radius: 5px; letter-spacing: .5px;">{{ m.posLabel }}</span>
+                <span style="font-size: 10.5px; color: {{ m.favorColor }}; font-weight: 600; white-space: nowrap;">{{ m.favorLabel }}</span>
+              </div>
+              <div style="width: 100%; height: 6px; background: #131a29; border-radius: 4px; overflow: hidden; display: flex;">
+                <div style="height: 100%; background: #5aa9ff; {{ m.blueBar }}"></div>
+                <div style="height: 100%; flex: 1; background: #f0656a;"></div>
+              </div>
+              <div style="display: flex; justify-content: space-between; width: 100%; font-family: 'IBM Plex Mono'; font-size: 10px;">
+                <span style="color: #5aa9ff;">{{ m.bluePct }}%</span>
+                <span style="color: #f0656a;">{{ m.redPct }}%</span>
+              </div>
             </div>
-            <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; justify-content: flex-end; height: 100%;">
-              <span style="font-family: 'IBM Plex Mono'; font-size: 13px; color: #f0656a;">{{ rForm }}%</span>
-              <div style="width: 34px; background: linear-gradient(#f0656a, #b0353a); border-radius: 5px 5px 0 0; {{ rFormBar }}"></div>
-              <span style="font-size: 11px; color: #f0656a; font-weight: 600;">RED</span>
+            <div style="min-width: 0; text-align: right;">
+              <div style="font-size: 13px; color: #dbe1ee; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ m.redName }}</div>
+              <div style="font-family: 'IBM Plex Mono'; font-size: 10.5px; color: #7f8aa3; margin-top: 2px;">{{ m.redSub }}</div>
             </div>
           </div>
-          <div style="margin-top: 8px; font-size: 11.5px; color: #7f8aa3; text-align: center;">{{ formVerdict }}</div>
+          </sc-for>
         </div>
       </div>
       </sc-if>
     </div>
 
     <!-- actions -->
-    <div style="margin-top: 22px; display: flex; justify-content: center; gap: 12px;">
-      <button onClick="{{ onReshuffle }}" style="display: flex; align-items: center; gap: 8px; background: #151c2d; border: 1px solid #2a3350; color: #dbe1ee; padding: 13px 22px; border-radius: 11px; font-size: 14px; font-weight: 500; cursor: pointer;" style-hover="{{ btnHover }}">다시 짜기 (다른 조합)</button>
-      <button onClick="{{ onCopy }}" style="display: flex; align-items: center; gap: 8px; background: linear-gradient(140deg, #e6c574, #c19a3f); border: none; color: #0b0f18; padding: 13px 24px; border-radius: 11px; font-size: 14px; font-weight: 700; cursor: pointer;" style-hover="{{ ctaHover }}">결과 복사 (디스코드용)</button>
-      <button onClick="{{ onReset }}" style="background: transparent; border: 1px solid #2a3350; color: #8b93a7; padding: 13px 22px; border-radius: 11px; font-size: 14px; cursor: pointer;" style-hover="{{ btnGhostHover }}">처음으로</button>
+    <div style="margin-top: 22px; display: flex; justify-content: center; align-items: center; gap: 12px;">
+      <button onClick="{{ onReshuffle }}" style="display: flex; align-items: center; gap: 8px; background: #151c2d; border: 1px solid #2a3350; color: #dbe1ee; padding: 13px 22px; border-radius: 11px; font-size: 14px; font-weight: 500; cursor: pointer;" style-hover="{{ btnHover }}">다시 짜기</button>
+      <button onClick="{{ onCopy }}" style="display: flex; align-items: center; gap: 8px; background: #151c2d; border: 1px solid #2a3350; color: #dbe1ee; padding: 13px 22px; border-radius: 11px; font-size: 14px; font-weight: 500; cursor: pointer;" style-hover="{{ btnHover }}">결과 복사 (디스코드용)</button>
+      <button onClick="{{ onStartGame }}" style="display: flex; align-items: center; gap: 9px; background: linear-gradient(140deg, #e6c574, #c19a3f); border: none; color: #0b0f18; padding: 14px 34px; border-radius: 11px; font-size: 15.5px; font-weight: 700; cursor: pointer; box-shadow: 0 8px 26px rgba(216,180,99,.25); font-family: 'Rajdhani','Noto Sans KR'; letter-spacing: .5px;" style-hover="{{ ctaHover }}">게임 시작 ▶</button>
+      <button onClick="{{ onReset }}" style="background: transparent; border: none; color: #6f7b96; padding: 13px 10px; font-size: 13px; cursor: pointer;" style-hover="{{ btnGhostHover }}">처음으로</button>
     </div>
+  </div>
+  </sc-if>
+
+  <!-- ============ SCREEN 4: GAME SIMULATION ============ -->
+  <sc-if value="{{ isSim }}">
+  <div data-screen-label="게임결과" style="max-width: 1180px; margin: 0 auto; padding: 26px 40px 44px;">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 30px; margin-bottom: 6px;">
+      <span style="font-family: 'Rajdhani'; font-weight: 700; font-size: 15px; letter-spacing: 3px; color: #5aa9ff;">BLUE</span>
+      <span style="font-family: 'IBM Plex Mono'; font-weight: 600; font-size: 52px; color: #5aa9ff; line-height: 1; min-width: 60px; text-align: right;">{{ simBlueScore }}</span>
+      <span style="font-family: 'Rajdhani'; font-size: 26px; color: #4a5573;">:</span>
+      <span style="font-family: 'IBM Plex Mono'; font-weight: 600; font-size: 52px; color: #f0656a; line-height: 1; min-width: 60px;">{{ simRedScore }}</span>
+      <span style="font-family: 'Rajdhani'; font-weight: 700; font-size: 15px; letter-spacing: 3px; color: #f0656a;">RED</span>
+    </div>
+    <div style="text-align: center; font-family: 'IBM Plex Mono'; font-size: 13px; color: #8b93a7; margin-bottom: 18px;">경기 시간 <span style="color: #d8b463;">{{ simTimeStr }}</span> / {{ simGameLenStr }}</div>
+
+    <!-- timeline -->
+    <div style="position: relative; height: 34px; margin-bottom: 20px; background: #0d1424; border: 1px solid #1e2740; border-radius: 10px;">
+      <div style="position: absolute; top: 50%; left: 12px; right: 12px; height: 2px; transform: translateY(-50%); background: #182036;"></div>
+      <div style="position: absolute; top: 0; bottom: 0; width: 2px; background: #e6c574; box-shadow: 0 0 10px #e6c574; transition: left .3s ease; {{ simPlayheadStyle }}"></div>
+      <sc-for list="{{ simMarkers }}" as="mk" hint-placeholder-count="0">
+      <div style="{{ mk.style }}"></div>
+      </sc-for>
+    </div>
+
+    <!-- kill feed -->
+    <div style="background: #0c1220; border: 1px solid #1a2236; border-radius: 14px; padding: 12px 16px 16px; height: 296px; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden;">
+      <sc-for list="{{ simFeed }}" as="ev" hint-placeholder-count="0">
+      <div style="{{ ev.rowStyle }}">
+        <span style="font-family: 'IBM Plex Mono'; font-size: 11px; color: #6f7b96; width: 40px; flex: none;">{{ ev.timeStr }}</span>
+        <div style="width: 27px; height: 27px; flex: none; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #eef2fb; border: 1px solid rgba(255,255,255,.12); {{ ev.killerStyle }}">{{ ev.killerLetter }}</div>
+        <span style="font-size: 12.5px; color: #dbe1ee; font-weight: 500;">{{ ev.killerName }}</span>
+        <span style="font-size: 15px; color: {{ ev.col }};">⚔</span>
+        <div style="width: 27px; height: 27px; flex: none; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #9aa3b8; filter: grayscale(.55); border: 1px solid rgba(255,255,255,.06); {{ ev.victimStyle }}">{{ ev.victimLetter }}</div>
+        <span style="font-size: 12.5px; color: #8b93a7;">{{ ev.victimName }} 처치</span>
+        <span style="flex: 1;"></span>
+        <span style="{{ ev.multiStyle }}">{{ ev.multi }}</span>
+      </div>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{ simShowBanner }}">
+      <div style="text-align: center; margin: 26px 0 4px; animation: bannerIn .6s cubic-bezier(.2,1.3,.4,1) both;">
+        <div style="font-family: 'Rajdhani'; font-weight: 700; font-size: 15px; letter-spacing: 8px; color: #8b93a7;">VICTORY</div>
+        <div style="font-family: 'Rajdhani'; font-weight: 700; font-size: 56px; letter-spacing: 2px; color: {{ simWinnerColor }}; text-shadow: 0 0 34px {{ simWinnerColor }}; line-height: 1.15;">{{ simWinnerLabel }}</div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ simShowBoard }}">
+    <div style="margin-top: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; animation: fadeUp .4s both;">
+      <div style="background: linear-gradient(160deg, rgba(47,95,176,.1), #0d1220); border: 1px solid rgba(90,169,255,.22); border-radius: 13px; overflow: hidden;">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 11px 15px; background: rgba(90,169,255,.07);">
+          <span style="font-family: 'Rajdhani'; font-weight: 700; letter-spacing: 2px; color: #5aa9ff;">BLUE TEAM</span>
+          <span style="font-family: 'IBM Plex Mono'; font-size: 11px; color: #6f7b96;">KDA · CS · 골드</span>
+        </div>
+        <sc-for list="{{ simBoardBlue }}" as="row" hint-placeholder-count="5">
+        <div style="display: flex; align-items: center; gap: 11px; padding: 10px 14px; border-top: 1px solid #131b2c;">
+          <div style="width: 34px; height: 34px; flex: none; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #eef2fb; border: 1px solid rgba(255,255,255,.1); {{ row.champStyle }}">{{ row.champAbbr }}</div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="display: flex; align-items: center; gap: 7px;">
+              <span style="font-size: 12.5px; color: #e8ebf3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 108px;">{{ row.name }}</span>
+              <span style="font-size: 8.5px; font-weight: 700; color: #0b0f18; background: linear-gradient(135deg,#e6c574,#c19a3f); padding: 1px 6px; border-radius: 4px; letter-spacing: .5px; {{ row.mvpStyle }}">MVP</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; margin-top: 5px;">
+              <span style="font-size: 9px; color: #6f7b96; width: 28px; flex: none;">{{ row.posLabel }}</span>
+              <div style="flex: 1; height: 5px; background: #131a29; border-radius: 4px; overflow: hidden;"><div style="height: 100%; border-radius: 4px; {{ row.dmgBar }}"></div></div>
+              <span style="font-family: 'IBM Plex Mono'; font-size: 10px; color: #8b93a7; width: 50px; text-align: right; flex: none;">{{ row.dmg }}</span>
+            </div>
+          </div>
+          <div style="text-align: center; flex: none; width: 62px;">
+            <div style="font-family: 'IBM Plex Mono'; font-size: 13px; color: #dbe1ee;">{{ row.k }}/{{ row.d }}/{{ row.a }}</div>
+            <div style="font-size: 9px; color: #6f7b96;">KDA {{ row.kda }}</div>
+          </div>
+          <div style="text-align: right; flex: none; width: 58px;">
+            <div style="font-family: 'IBM Plex Mono'; font-size: 12px; color: #d8b463;">{{ row.gold }}</div>
+            <div style="font-size: 9px; color: #6f7b96;">{{ row.cs }} CS</div>
+          </div>
+        </div>
+        </sc-for>
+      </div>
+      <div style="background: linear-gradient(160deg, rgba(176,53,58,.1), #0d1220); border: 1px solid rgba(240,101,106,.22); border-radius: 13px; overflow: hidden;">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 11px 15px; background: rgba(240,101,106,.07);">
+          <span style="font-family: 'Rajdhani'; font-weight: 700; letter-spacing: 2px; color: #f0656a;">RED TEAM</span>
+          <span style="font-family: 'IBM Plex Mono'; font-size: 11px; color: #6f7b96;">KDA · CS · 골드</span>
+        </div>
+        <sc-for list="{{ simBoardRed }}" as="row" hint-placeholder-count="5">
+        <div style="display: flex; align-items: center; gap: 11px; padding: 10px 14px; border-top: 1px solid #131b2c;">
+          <div style="width: 34px; height: 34px; flex: none; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #eef2fb; border: 1px solid rgba(255,255,255,.1); {{ row.champStyle }}">{{ row.champAbbr }}</div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="display: flex; align-items: center; gap: 7px;">
+              <span style="font-size: 12.5px; color: #e8ebf3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 108px;">{{ row.name }}</span>
+              <span style="font-size: 8.5px; font-weight: 700; color: #0b0f18; background: linear-gradient(135deg,#e6c574,#c19a3f); padding: 1px 6px; border-radius: 4px; letter-spacing: .5px; {{ row.mvpStyle }}">MVP</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; margin-top: 5px;">
+              <span style="font-size: 9px; color: #6f7b96; width: 28px; flex: none;">{{ row.posLabel }}</span>
+              <div style="flex: 1; height: 5px; background: #131a29; border-radius: 4px; overflow: hidden;"><div style="height: 100%; border-radius: 4px; {{ row.dmgBar }}"></div></div>
+              <span style="font-family: 'IBM Plex Mono'; font-size: 10px; color: #8b93a7; width: 50px; text-align: right; flex: none;">{{ row.dmg }}</span>
+            </div>
+          </div>
+          <div style="text-align: center; flex: none; width: 62px;">
+            <div style="font-family: 'IBM Plex Mono'; font-size: 13px; color: #dbe1ee;">{{ row.k }}/{{ row.d }}/{{ row.a }}</div>
+            <div style="font-size: 9px; color: #6f7b96;">KDA {{ row.kda }}</div>
+          </div>
+          <div style="text-align: right; flex: none; width: 58px;">
+            <div style="font-family: 'IBM Plex Mono'; font-size: 12px; color: #d8b463;">{{ row.gold }}</div>
+            <div style="font-size: 9px; color: #6f7b96;">{{ row.cs }} CS</div>
+          </div>
+        </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="margin-top: 22px; display: flex; justify-content: center; align-items: center; gap: 12px;">
+      <button onClick="{{ onReplay }}" style="background: #151c2d; border: 1px solid #2a3350; color: #dbe1ee; padding: 13px 22px; border-radius: 11px; font-size: 14px; font-weight: 500; cursor: pointer;" style-hover="{{ btnHover }}">다시 보기</button>
+      <button onClick="{{ onBackResult }}" style="background: linear-gradient(140deg, #e6c574, #c19a3f); border: none; color: #0b0f18; padding: 13px 26px; border-radius: 11px; font-size: 14px; font-weight: 700; cursor: pointer;" style-hover="{{ ctaHover }}">결과 화면으로</button>
+      <button onClick="{{ onReset }}" style="background: transparent; border: none; color: #6f7b96; padding: 13px 10px; font-size: 13px; cursor: pointer;" style-hover="{{ btnGhostHover }}">처음으로</button>
+    </div>
+    </sc-if>
   </div>
   </sc-if>
 
@@ -516,12 +627,23 @@ class Component extends DCLogic {
     return order.map(o=>({pos:o, player:res[o].player, honored:res[o].honored}));
   }
 
+  champWr(name){ return 45 + this.hash('c'+name)%16; }
+
+  pickChamp(team, idx, ci){
+    this.setState(s=>{
+      const teams={blue:s.teams.blue.map(x=>({...x,player:{...x.player}})), red:s.teams.red.map(x=>({...x,player:{...x.player}}))};
+      teams[team][idx].player.pickIdx=ci;
+      return {teams};
+    });
+  }
+
   rates(teams){
     const sum=t=>t.reduce((a,c)=>a+c.player.score,0);
     const form=t=>t.reduce((a,c)=>a+(c.player.form.wr-50),0);
+    const pick=t=>t.reduce((a,c)=>{const p=c.player;const ch=(p.champs||[])[p.pickIdx||0];return a+(ch?this.champWr(ch)-50:0);},0);
     const b=sum(teams.blue), r=sum(teams.red);
     const bf=form(teams.blue), rf=form(teams.red);
-    const diff=(b-r)+(bf-rf)*5;
+    const diff=(b-r)+(bf-rf)*5+(pick(teams.blue)-pick(teams.red))*4;
     const p=1/(1+Math.exp(-diff/470));
     let blue=Math.max(38, Math.min(62, Math.round(p*100)));
     return {blue, red:100-blue, bScore:Math.round(b/5), rScore:Math.round(r/5), bForm:Math.round(bf/5+50), rForm:Math.round(rf/5+50)};
@@ -557,7 +679,78 @@ class Component extends DCLogic {
     this.flashToast('디스코드용 텍스트를 복사했습니다');
   }
 
-  reset(){ this.setState({screen:'input', teams:null, dragSrc:null}); }
+  reset(){ clearInterval(this._simTimer); this.setState({screen:'input', teams:null, sim:null, dragSrc:null}); }
+
+  mmss(sec){ const m=Math.floor(sec/60), s=Math.max(0,Math.round(sec))%60; return m+':'+String(s).padStart(2,'0'); }
+
+  simCarry(entry){ const roleW={AD:1.55,MID:1.4,JG:1.1,TOP:1.0,SUP:0.5}; return (roleW[entry.pos]||1)*(0.55+entry.player.score/3000)*(0.8+entry.player.form.wr/100); }
+
+  weightedPick(weights){ const tot=weights.reduce((a,b)=>a+b,0); let x=Math.random()*tot; for(let i=0;i<weights.length;i++){ x-=weights[i]; if(x<=0) return i; } return weights.length-1; }
+
+  generateSim(teams){
+    const r=this.rates(teams);
+    const winner=(Math.random()*100 < r.blue) ? 'blue' : 'red';
+    const other=winner==='blue'?'red':'blue';
+    const gameLenMin=23+Math.round(Math.random()*14);
+    const gameLenSec=gameLenMin*60;
+    const total=24+Math.round(Math.random()*20);
+    const winShare=0.58+Math.random()*0.08;
+    const ent={blue:teams.blue.map(c=>({player:c.player,pos:c.pos})), red:teams.red.map(c=>({player:c.player,pos:c.pos}))};
+    const carry={blue:ent.blue.map(e=>this.simCarry(e)), red:ent.red.map(e=>this.simCarry(e))};
+    const K={blue:[0,0,0,0,0],red:[0,0,0,0,0]}, D={blue:[0,0,0,0,0],red:[0,0,0,0,0]}, A={blue:[0,0,0,0,0],red:[0,0,0,0,0]};
+    const times=Array.from({length:total},()=>Math.random()).sort((a,b)=>a-b).map(x=>Math.round((0.06+x*0.9)*gameLenSec));
+    const events=[];
+    for(let i=0;i<total;i++){
+      const kt=(Math.random()<winShare)?winner:other;
+      const vt=kt==='blue'?'red':'blue';
+      const ki=this.weightedPick(carry[kt]);
+      const vi=this.weightedPick(carry[vt].map(w=>1/w));
+      K[kt][ki]++; D[vt][vi]++;
+      const na=Math.floor(Math.random()*3);
+      const apool=[0,1,2,3,4].filter(x=>x!==ki);
+      for(let a=0;a<na;a++){ const pk=apool.splice(Math.floor(Math.random()*apool.length),1)[0]; if(pk!=null) A[kt][pk]++; }
+      const killer=ent[kt][ki].player, victim=ent[vt][vi].player;
+      events.push({team:kt, key:kt+ki, killerName:killer.name, killerLetter:killer.name[0], killerHue:killer.hue, victimName:victim.name, victimLetter:victim.name[0], victimHue:victim.hue, time:times[i]});
+    }
+    const lastT={}, run={}, labels={2:'더블 킬',3:'트리플 킬',4:'쿼드라 킬',5:'펜타 킬'};
+    events.forEach(e=>{
+      const prev=lastT[e.key];
+      run[e.key]=(prev!=null && e.time-prev<=15) ? (run[e.key]||1)+1 : 1;
+      lastT[e.key]=e.time;
+      e.multi=labels[Math.min(5,run[e.key])]||'';
+    });
+    const csPer={AD:8.8,MID:8.2,TOP:7.4,JG:5.8,SUP:2.4}, dmgMul={AD:1.15,MID:1.2,TOP:0.85,JG:0.8,SUP:0.5};
+    const mk=(side)=> ent[side].map((e,i)=>{
+      const p=e.player, k=K[side][i], d=D[side][i], a=A[side][i];
+      const cs=Math.round((csPer[e.pos]||6)*gameLenMin*(0.9+Math.random()*0.2));
+      const gold=Math.round(500+cs*19+k*310+a*95+(side===winner?600:0));
+      const dmg=Math.round((k*1350+a*360+cs*8)*(dmgMul[e.pos]||1)*(side===winner?1.08:0.95));
+      return {pos:e.pos, player:p, k,d,a,cs,gold,dmg};
+    });
+    const stats={blue:mk('blue'), red:mk('red')};
+    let mvpKey=null, mvpV=-1;
+    stats[winner].forEach((s,i)=>{ const v=s.k*3+s.a*1.5+s.dmg/900; if(v>mvpV){mvpV=v;mvpKey=winner+i;} });
+    return {winner, gameLenMin, gameLenSec, total, events, revealedCount:0, stats, mvpKey, showBanner:false, showBoard:false};
+  }
+
+  _runSim(){
+    clearInterval(this._simTimer);
+    this._simTimer=setInterval(()=>{
+      const s=this.state;
+      if(!s.sim || s.screen!=='sim'){ clearInterval(this._simTimer); return; }
+      if(s.sim.revealedCount>=s.sim.events.length){
+        clearInterval(this._simTimer);
+        setTimeout(()=>this.setState(st=>st.sim?{sim:{...st.sim,showBanner:true}}:{}), 450);
+        setTimeout(()=>this.setState(st=>st.sim?{sim:{...st.sim,showBoard:true}}:{}), 1600);
+        return;
+      }
+      this.setState(st=>st.sim?{sim:{...st.sim, revealedCount:st.sim.revealedCount+1}}:{});
+    }, 360);
+  }
+
+  startGame(){ this.setState({screen:'sim', sim:this.generateSim(this.state.teams)}); this._runSim(); }
+  replaySim(){ this.setState(s=>s.sim?{sim:{...s.sim,revealedCount:0,showBanner:false,showBoard:false}}:{}); this._runSim(); }
+  backToResult(){ clearInterval(this._simTimer); this.setState({screen:'result'}); }
 
   flashToast(msg){
     this.setState({toast:msg});
@@ -600,7 +793,7 @@ class Component extends DCLogic {
       pos: entry.pos, posLabel: this.posLabel(entry.pos), posColor: this.posColor(entry.pos),
       posEmblem: `background:linear-gradient(140deg, ${this.posColor(entry.pos)}, ${this.posColor(entry.pos)}bb);`,
       wr: p.form.wr, wrColor: p.form.wr>=55?'#4fd18a':(p.form.wr<50?'#f0797d':'#c8cede'),
-      champs: p.champs.slice(0,3).map(name=>({name, abbr:(name[0]||'')+(name[1]||''), style:this.styleStr(this.champStyle(name))})),
+      champs: p.champs.slice(0,3).map((name,ci)=>{const sel=(p.pickIdx||0)===ci;const wr=this.champWr(name);return {name, title:name+' · 실전 승률 '+wr+'% (클릭해 픽 지정)', abbr:(name[0]||'')+(name[1]||''), onClick:()=>this.pickChamp(team,idx,ci), style:this.styleStr(this.champStyle(name))+(sel?'outline:2px solid #e6c574;outline-offset:1px;box-shadow:0 0 9px rgba(216,180,99,.55);':'opacity:.66;')};}),
       reason: this.reasonText(entry.pos, p, entry.honored, p.score===topScore),
       cardStyle,
       onDragStart: ()=>this.setState({dragSrc:{team,idx}}),
@@ -681,7 +874,7 @@ class Component extends DCLogic {
       : `display:flex;align-items:center;gap:14px;white-space:nowrap;background:linear-gradient(140deg,#e6c574,#c19a3f);border:none;color:#0b0f18;padding:16px 60px;border-radius:13px;font-size:18px;font-weight:700;cursor:pointer;font-family:'Rajdhani','Noto Sans KR';letter-spacing:.5px;box-shadow:0 8px 30px rgba(216,180,99,.25);`;
 
     const out = {
-      isInput: st.screen==='input', isAnalyzing: st.screen==='analyzing', isResult: st.screen==='result',
+      isInput: st.screen==='input', isAnalyzing: st.screen==='analyzing', isResult: st.screen==='result', isSim: st.screen==='sim',
       filledCount, slots, saved, startDisabled, ctaStyle,
       onClearAll: ()=>this.clearAll(), onFillDemo: ()=>this.fillDemo(), onStart: ()=>this.start(),
       inputFocus: {borderColor:'#d8b463', background:'#111a2c'},
@@ -725,28 +918,84 @@ class Component extends DCLogic {
       out.blueGaugeStyle=`width:${r.blue}%;`;
       const gap=Math.abs(r.blue-r.red);
       out.balanceVerdict = gap<=4 ? '⚖ 매우 균형 잡힌 매치 — 백중세 예상' : gap<=8 ? '살짝 기울지만 해볼 만한 매치' : '한쪽이 다소 유리 — 스왑으로 조정해 보세요';
-      out.bScore=r.bScore; out.rScore=r.rScore;
-      const maxS=Math.max(r.bScore,r.rScore);
-      out.bScoreBar=`width:${r.bScore/maxS*100}%;`; out.rScoreBar=`width:${r.rScore/maxS*100}%;`;
-      const sgap=Math.abs(r.bScore-r.rScore);
-      out.scoreVerdict = sgap<40 ? `평균 MMR 차이 ${sgap}점 — 거의 동일` : `평균 MMR 차이 ${sgap}점 (${r.bScore>r.rScore?'블루':'레드'} 우세)`;
-      out.bForm=r.bForm; out.rForm=r.rForm;
-      const maxF=Math.max(r.bForm,r.rForm);
-      out.bFormBar=`height:${r.bForm/maxF*70}px;`; out.rFormBar=`height:${r.rForm/maxF*70}px;`;
-      out.formVerdict = Math.abs(r.bForm-r.rForm)<3 ? '양 팀 최근 폼 대등' : (r.bForm>r.rForm?'블루':'레드')+'팀 최근 폼이 조금 더 좋음';
+      const tierLabel=(sc)=>this.tierFromScore(sc).text.replace(/ \d+LP$/,'');
       const honored=[...t.blue,...t.red].filter(c=>c.honored).length;
-      out.honoredPct=Math.round(honored/10*100);
-      out.coverage=['TOP','JG','MID','AD','SUP'].map(pos=>{
-        const b=t.blue.find(c=>c.pos===pos), rd=t.red.find(c=>c.pos===pos);
-        const dot=(c,col)=>`width:8px;height:8px;border-radius:50%;flex:none;background:${c.honored?col:'#3a445e'};`;
-        return {label:this.posLabel(pos), blueName:b.player.name, redName:rd.player.name, blueDot:dot(b,'#5aa9ff'), redDot:dot(rd,'#f0656a')};
+      const sgap=Math.abs(r.bScore-r.rScore);
+      const fgap=Math.abs(r.bForm-r.rForm);
+      out.summaryLines=[
+        {text:`양 팀 평균 티어는 블루 ${tierLabel(r.bScore)} · 레드 ${tierLabel(r.rScore)}로 ${sgap<40?'사실상 동일한 실력대입니다':(r.bScore>r.rScore?'블루가 근소하게 높습니다':'레드가 근소하게 높습니다')}.`},
+        {text:`최근 10경기 폼은 블루 ${r.bForm}% · 레드 ${r.rForm}%로 ${fgap<3?'대등합니다':(r.bForm>r.rForm?'블루가 살짝 상승세입니다':'레드가 살짝 상승세입니다')}.`},
+        {text:`스네이크 드래프트로 상위 실력자를 양 팀에 나눠 배치해 예상 승률 격차를 ${Math.abs(r.blue-r.red)}%p로 맞췄습니다.`},
+        {text:`10명 중 ${honored}명이 주 포지션에 배정됐고, 전 라인이 빈틈없이 채워졌습니다.`}
+      ];
+      out.lineMatchups=['TOP','JG','MID','AD','SUP'].map(pos=>{
+        const b=t.blue.find(c=>c.pos===pos).player, rd=t.red.find(c=>c.pos===pos).player;
+        const bs=b.score+(b.form.wr-50)*8, rs=rd.score+(rd.form.wr-50)*8;
+        const p=1/(1+Math.exp(-(bs-rs)/300));
+        const bluePct=Math.max(30,Math.min(70,Math.round(p*100)));
+        const redPct=100-bluePct, gap=Math.abs(bluePct-50);
+        const favorLabel= gap<=4 ? '백중세' : (bluePct>50?'블루 우세':'레드 우세');
+        const favorColor= gap<=4 ? '#d8b463' : (bluePct>50?'#5aa9ff':'#f0656a');
+        return {
+          posLabel:this.posLabel(pos),
+          blueName:b.name, blueSub:tierLabel(b.score)+' · 폼 '+b.form.wr+'%',
+          redName:rd.name, redSub:tierLabel(rd.score)+' · 폼 '+rd.form.wr+'%',
+          bluePct, redPct, blueBar:`width:${bluePct}%;`, favorLabel, favorColor
+        };
       });
       out.summaryOpen=st.summaryOpen;
       out.summaryChevron= st.summaryOpen?'transform:rotate(0deg);':'transform:rotate(-90deg);';
       out.onToggleSummary=()=>this.setState(s=>({summaryOpen:!s.summaryOpen}));
       out.onReshuffle=()=>this.reshuffle();
       out.onCopy=()=>this.copyResult();
+      out.onStartGame=()=>this.startGame();
       out.onReset=()=>this.reset();
+    }
+
+    if(st.screen==='sim' && st.sim){
+      const sm=st.sim, rc=sm.revealedCount;
+      const shown=sm.events.slice(0,rc);
+      out.simBlueScore=shown.filter(e=>e.team==='blue').length;
+      out.simRedScore=shown.filter(e=>e.team==='red').length;
+      const lastT= rc>0? shown[rc-1].time : 0;
+      const clock=sm.showBoard? sm.gameLenSec : lastT;
+      out.simTimeStr=this.mmss(clock);
+      out.simGameLenStr=this.mmss(sm.gameLenSec);
+      out.simPlayheadStyle=`left:${(clock/sm.gameLenSec*100).toFixed(2)}%;`;
+      out.simMarkers=sm.events.map((e,i)=>{
+        const col=e.team==='blue'?'#5aa9ff':'#f0656a';
+        return {style:`position:absolute;top:50%;left:${(e.time/sm.gameLenSec*100).toFixed(2)}%;transform:translate(-50%,-50%) rotate(45deg);`
+          +`width:${i<rc?9:6}px;height:${i<rc?9:6}px;background:${i<rc?col:'#2a3350'};transition:all .3s;`+(i<rc?`box-shadow:0 0 6px ${col};`:'')};
+      });
+      out.simFeed=shown.map(e=>{
+        const col=e.team==='blue'?'#5aa9ff':'#f0656a';
+        return {
+          rowStyle:`display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:9px;margin-top:7px;flex:none;`
+            +`background:linear-gradient(90deg, ${e.team==='blue'?'rgba(90,169,255,.13)':'rgba(240,101,106,.13)'}, transparent);`
+            +`border-left:3px solid ${col};animation:killIn .45s ease both;`,
+          killerLetter:e.killerLetter, killerStyle:`background:linear-gradient(135deg,hsl(${e.killerHue} 42% 36%),hsl(${e.killerHue} 46% 22%));`,
+          victimLetter:e.victimLetter, victimStyle:`background:linear-gradient(135deg,hsl(${e.victimHue} 18% 28%),hsl(${e.victimHue} 20% 17%));`,
+          killerName:e.killerName, victimName:e.victimName, timeStr:this.mmss(e.time), col,
+          multi:e.multi, multiStyle:e.multi?`font-size:10px;font-weight:700;color:#0b0f18;background:linear-gradient(135deg,#e6c574,#c19a3f);padding:2px 8px;border-radius:5px;flex:none;`:'display:none;'
+        };
+      });
+      out.simShowBanner=sm.showBanner; out.simShowBoard=sm.showBoard;
+      out.simWinnerColor=sm.winner==='blue'?'#5aa9ff':'#f0656a';
+      out.simWinnerLabel=(sm.winner==='blue'?'BLUE':'RED')+' 팀 승리';
+      const maxDmg=Math.max(1, ...sm.stats.blue.concat(sm.stats.red).map(s=>s.dmg));
+      const boardRow=(side)=> sm.stats[side].map((s,i)=>{
+        const ch=s.player.champs[s.player.pickIdx||0]||'-';
+        return {
+          posLabel:this.posLabel(s.pos), name:s.player.name,
+          champAbbr:(ch[0]||'')+(ch[1]||''), champStyle:this.styleStr(this.champStyle(ch)),
+          k:s.k, d:s.d, a:s.a, cs:s.cs, gold:s.gold.toLocaleString(), dmg:s.dmg.toLocaleString(),
+          kda:((s.k+s.a)/Math.max(1,s.d)).toFixed(1),
+          dmgBar:`width:${Math.round(s.dmg/maxDmg*100)}%;background:${side==='blue'?'#5aa9ff':'#f0656a'};`,
+          mvpStyle:(side+i)===sm.mvpKey?'':'display:none;'
+        };
+      });
+      out.simBoardBlue=boardRow('blue'); out.simBoardRed=boardRow('red');
+      out.onReplay=()=>this.replaySim(); out.onBackResult=()=>this.backToResult(); out.onReset=()=>this.reset();
     }
 
     return out;
