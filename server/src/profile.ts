@@ -13,18 +13,26 @@ import {
   type RiotAccount,
   type RiotMatchParticipant,
 } from './riot.js';
+import type { Priority } from './queue.js';
 import type { ChampSummary, MasteryChamp, Player, Position } from './types.js';
 
 const POSITION_FALLBACK: Position[] = ['TOP', 'JG', 'MID', 'AD', 'SUP'];
 
-export async function resolveAccount(regional: string, gameName: string, tagLine: string): Promise<RiotAccount | null> {
-  return getAccountByRiotId(regional, gameName, tagLine);
+export async function resolveAccount(
+  regional: string,
+  gameName: string,
+  tagLine: string,
+  priority: Priority = 'high',
+): Promise<RiotAccount | null> {
+  return getAccountByRiotId(regional, gameName, tagLine, priority);
 }
 
 export interface ProfileOptions {
   matchCount: number;
   includeMastery: boolean;
   includeLive: boolean;
+  /** 'low' for background work (e.g. warming the shared roster) so it always yields to a real visitor's request. */
+  priority?: Priority;
   onPhase?: (phase: string) => void;
 }
 
@@ -41,20 +49,21 @@ export async function buildPlayerProfile(
 ): Promise<Player> {
   const { puuid } = account;
   const phase = (p: string) => opts.onPhase?.(p);
+  const priority = opts.priority ?? 'high';
 
   phase('소환사 정보 조회 중...');
-  const summoner = await getSummonerByPuuid(platform, puuid);
+  const summoner = await getSummonerByPuuid(platform, puuid, priority);
 
   phase('티어 · LP 확인 중...');
-  const leagues = await getLeagueByPuuid(platform, puuid);
+  const leagues = await getLeagueByPuuid(platform, puuid, priority);
   const solo = leagues.find((l) => l.queueType === 'RANKED_SOLO_5x5') ?? leagues.find((l) => l.queueType === 'RANKED_FLEX_SR');
   const ranked = !!solo;
   const score = solo ? scoreFromRank(solo.tier, solo.rank, solo.leaguePoints) : UNRANKED_SCORE;
   const tier = solo ? tierDisplay(solo.tier, solo.rank, solo.leaguePoints) : UNRANKED_TIER;
 
   phase('최근 전적 분석 중...');
-  const matchIds = await getMatchIds(regional, puuid, opts.matchCount);
-  const matches = (await Promise.all(matchIds.map((id) => getMatchDetail(regional, id)))).filter(
+  const matchIds = await getMatchIds(regional, puuid, opts.matchCount, priority);
+  const matches = (await Promise.all(matchIds.map((id) => getMatchDetail(regional, id, priority)))).filter(
     (m): m is NonNullable<typeof m> => !!m,
   );
   const records = matches
@@ -127,7 +136,7 @@ export async function buildPlayerProfile(
   let masteryChamps: MasteryChamp[] = [];
   if (opts.includeMastery || sparse) {
     phase('챔피언 숙련도 분석 중...');
-    const top = await getMasteryTop(platform, puuid, 3);
+    const top = await getMasteryTop(platform, puuid, 3, priority);
     masteryChamps = top.map((m) => {
       const c = championByNumericId(m.championId);
       return { name: c?.name ?? String(m.championId), iconId: c?.id ?? '', points: m.championPoints };
@@ -136,7 +145,7 @@ export async function buildPlayerProfile(
 
   let liveGame = false;
   if (opts.includeLive) {
-    liveGame = await getActiveGame(platform, puuid);
+    liveGame = await getActiveGame(platform, puuid, priority);
   }
 
   // When the recent-match sample is too thin to trust, lead with career mastery instead (still

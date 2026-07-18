@@ -42,30 +42,36 @@ app.get('/api/champions', async (_req, res) => {
   res.json({ champions: allChampions() });
 });
 
+// Resolving all 10 roster members costs ~13 Riot calls each — always at 'low' priority so it can
+// never make a real visitor's own lookup/analyze request wait behind it (see queue.ts).
+function resolveRoster(): Promise<Player[]> {
+  return riotCache.getOrSet<Player[]>('roster:resolved', 10 * 60_000, async () => {
+    const resolved = await Promise.all(
+      ROSTER.map(async (r) => {
+        try {
+          const account = await resolveAccount(DEFAULT_REGIONAL, r.name, r.tag, 'low');
+          if (!account) return null;
+          return await buildPlayerProfile(DEFAULT_PLATFORM, DEFAULT_REGIONAL, account, {
+            matchCount: 10,
+            includeMastery: false,
+            includeLive: false,
+            priority: 'low',
+          });
+        } catch {
+          return null;
+        }
+      }),
+    );
+    return resolved.filter((p): p is Player => !!p);
+  });
+}
+
 app.get('/api/roster', async (_req, res) => {
   if (!RIOT_API_KEY) {
     return res.json({ players: [] });
   }
   try {
-    const players = await riotCache.getOrSet<Player[]>('roster:resolved', 10 * 60_000, async () => {
-      const resolved = await Promise.all(
-        ROSTER.map(async (r) => {
-          try {
-            const account = await resolveAccount(DEFAULT_REGIONAL, r.name, r.tag);
-            if (!account) return null;
-            return await buildPlayerProfile(DEFAULT_PLATFORM, DEFAULT_REGIONAL, account, {
-              matchCount: 10,
-              includeMastery: false,
-              includeLive: false,
-            });
-          } catch {
-            return null;
-          }
-        }),
-      );
-      return resolved.filter((p): p is Player => !!p);
-    });
-    res.json({ players });
+    res.json({ players: await resolveRoster() });
   } catch (err) {
     const { status, message } = messageFor(err);
     res.status(status).json({ players: [], message });
@@ -172,6 +178,14 @@ async function main() {
     // eslint-disable-next-line no-console
     console.log(`[pentabalance] server listening on http://localhost:${PORT} (platform=${DEFAULT_PLATFORM}, regional=${DEFAULT_REGIONAL})`);
   });
+  // Warm the roster cache in the background (low priority) so it's usually ready before anyone
+  // asks for it, without delaying server startup or an early visitor's own request.
+  if (RIOT_API_KEY) {
+    resolveRoster().catch((err) => {
+      // eslint-disable-next-line no-console
+      console.warn('[pentabalance] roster warmup failed, will retry lazily on next request:', err);
+    });
+  }
 }
 
 void main();
