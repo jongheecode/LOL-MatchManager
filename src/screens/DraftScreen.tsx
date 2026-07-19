@@ -32,11 +32,13 @@ export function DraftScreen({
   teams,
   allChampions,
   onComplete,
+  onSimulate,
   onCancel,
 }: {
   teams: Teams;
   allChampions: ChampSummary[];
   onComplete: (picks: ChampPicks) => void;
+  onSimulate: (picks: ChampPicks) => void;
   onCancel: () => void;
 }) {
   const [history, setHistory] = useState<DraftAction[]>([]);
@@ -124,22 +126,27 @@ export function DraftScreen({
       ) : (
         <div style={{ textAlign: 'center', background: '#0c1220', border: '1px solid #1a2236', borderRadius: 14, padding: '28px 16px' }}>
           <div style={{ fontSize: 16, fontWeight: 700, color: '#e8ebf3', marginBottom: 14 }}>드래프트 완료 ✓</div>
-          <button
-            type="button"
-            onClick={() => onComplete(picks)}
-            style={{
-              background: 'linear-gradient(140deg, #e6c574, #c19a3f)',
-              border: 'none',
-              color: '#0b0f18',
-              padding: '13px 30px',
-              borderRadius: 11,
-              fontSize: 14.5,
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            결과 화면으로 돌아가기
-          </button>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 12 }}>
+            <button type="button" onClick={() => onComplete(picks)} style={ghostBtnStyle(false)}>
+              결과 화면으로 돌아가기
+            </button>
+            <button
+              type="button"
+              onClick={() => onSimulate(picks)}
+              style={{
+                background: 'linear-gradient(140deg, #e6c574, #c19a3f)',
+                border: 'none',
+                color: '#0b0f18',
+                padding: '13px 30px',
+                borderRadius: 11,
+                fontSize: 14.5,
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              바로 시뮬레이션 시작 ▶
+            </button>
+          </div>
         </div>
       )}
     </div>

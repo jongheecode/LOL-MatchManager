@@ -302,6 +302,19 @@ export default function App() {
     flashToast('모의 드래프트 결과를 반영했습니다');
   };
 
+  const simulateFromDraft = (picks: ChampPicks) => {
+    if (!teams) return;
+    const blockers = [...teams.blue, ...teams.red].filter((e) => needsManualPick(e, picks));
+    if (blockers.length > 0) {
+      flashToast(`드래프트가 완료되지 않았습니다: ${blockers.map((e) => e.player.name).join(', ')}`);
+      return;
+    }
+    setChampPicks(picks);
+    invalidateAi();
+    setGameResult(simulateGame(teams, computeRates(teams, picks), picks));
+    setScreen('game');
+  };
+
   return (
     <div className="app-shell">
       {screen === 'input' && (
@@ -349,7 +362,13 @@ export default function App() {
         />
       )}
       {screen === 'draft' && teams && (
-        <DraftScreen teams={teams} allChampions={allChampions} onComplete={completeDraft} onCancel={() => setScreen('result')} />
+        <DraftScreen
+          teams={teams}
+          allChampions={allChampions}
+          onComplete={completeDraft}
+          onSimulate={simulateFromDraft}
+          onCancel={() => setScreen('result')}
+        />
       )}
       {screen === 'game' && teams && gameResult && (
         <GameResultScreen teams={teams} result={gameResult} onBackToResult={() => setScreen('result')} onReset={reset} />
