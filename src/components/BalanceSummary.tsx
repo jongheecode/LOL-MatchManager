@@ -105,7 +105,7 @@ export function BalanceSummary({
             ))}
           </div>
           <div style={{ fontSize: 11.5, color: '#6f7b96', margin: '0 2px 10px', letterSpacing: 0.3 }}>
-            라인 상대 밸런스 <span style={{ color: '#55617a' }}>· 최근 전적 · 티어 기반 예상</span>
+            라인 상대 밸런스 <span style={{ color: '#7f8aa3' }}>· 최근 전적 · 티어 기반 예상</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {lineMatchups.map((m) => (

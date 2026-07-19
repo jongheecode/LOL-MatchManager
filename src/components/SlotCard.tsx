@@ -105,7 +105,7 @@ export function SlotCard({
               borderRadius: 6,
               background: 'transparent',
               border: 'none',
-              color: '#55617a',
+              color: '#7f8aa3',
               fontSize: 14,
               cursor: 'pointer',
               display: 'flex',
@@ -120,7 +120,7 @@ export function SlotCard({
 
       <div style={{ marginTop: 10, minHeight: 44 }}>
         {status === 'empty' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#55617a', fontSize: 12.5, padding: '6px 2px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#7f8aa3', fontSize: 12.5, padding: '6px 2px' }}>
             <div style={{ width: 30, height: 30, borderRadius: 8, border: '1px dashed #2a3350' }} />
             Riot ID를 입력하면 전적을 불러옵니다
           </div>

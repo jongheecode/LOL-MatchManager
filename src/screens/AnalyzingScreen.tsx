@@ -60,7 +60,7 @@ export function AnalyzingScreen({ rows, currentText, percent }: { rows: AnalyzeR
               ? { fontSize: 11.5, color: '#f0797d', fontWeight: 600 }
               : isCur
                 ? { fontSize: 11.5, color: '#d8b463', fontWeight: 600, animation: 'pulse 1.2s infinite' }
-                : { fontSize: 11.5, color: '#55617a' };
+                : { fontSize: 11.5, color: '#7f8aa3' };
           return (
             <div
               key={i}

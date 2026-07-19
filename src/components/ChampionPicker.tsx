@@ -182,7 +182,7 @@ export function ChampionPicker({
                 선택 해제 (최근 전적 기준으로)
               </button>
             )}
-            {filtered.length === 0 && <div style={{ padding: '12px', fontSize: 11.5, color: '#55617a' }}>검색 결과가 없어요</div>}
+            {filtered.length === 0 && <div style={{ padding: '12px', fontSize: 11.5, color: '#7f8aa3' }}>검색 결과가 없어요</div>}
             {filtered.map((c) => {
               const stat = poolByName.get(c.name);
               const isSel = selected?.name === c.name;

@@ -23,7 +23,7 @@ button {
   font-family: inherit;
 }
 input::placeholder {
-  color: #55617a;
+  color: #7f8aa3;
 }
 button {
   font-family: inherit;
@@ -124,4 +124,6 @@ button {
   min-height: 100vh;
   background: radial-gradient(1200px 600px at 50% -10%, #101a2e 0%, #080b13 60%);
   position: relative;
+  display: flex;
+  flex-direction: column;
 }

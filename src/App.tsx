@@ -327,62 +327,64 @@ export default function App() {
   return (
     <div className="app-shell">
       <Header onHome={reset} />
-      {screen === 'input' && (
-        <InputScreen
-          slots={slots}
-          filledCount={filledCount}
-          onQueryChange={setQuery}
-          onCommit={commit}
-          onTogglePref={togglePref}
-          onClearAll={clearAll}
-          onClearSlot={clearSlot}
-          saved={displaySaved}
-          onPickSaved={fillFromSaved}
-          onFillMany={() => fillManyFromSaved(displaySaved)}
-          onDeleteSaved={deleteSaved}
-          onStart={start}
-        />
-      )}
-      {screen === 'analyzing' && (
-        <AnalyzingScreen rows={analyzeRows} currentText={analyzeCurrent} percent={Math.round((analyzeDone / 10) * 100)} />
-      )}
-      {screen === 'result' && teams && activeRates && (
-        <ResultScreen
-          teams={teams}
-          rates={activeRates}
-          dragSrc={dragSrc}
-          onDragStart={onDragStart}
-          onDrop={onDrop}
-          onDragEnd={onDragEnd}
-          summaryOpen={summaryOpen}
-          onToggleSummary={() => setSummaryOpen((v) => !v)}
-          champPicks={champPicks}
-          onSelectChamp={onSelectChamp}
-          allChampions={allChampions}
-          onReshuffle={reshuffle}
-          onCopy={copyResult}
-          onReset={reset}
-          onStartGame={startGame}
-          onStartDraft={startDraft}
-          teamOrigin={teamOrigin}
-          aiStatus={aiStatus}
-          aiAnalysis={aiAnalysis}
-          onAiMatch={runAiMatch}
-          onAiReanalyze={runAiReanalyze}
-        />
-      )}
-      {screen === 'draft' && teams && (
-        <DraftScreen
-          teams={teams}
-          allChampions={allChampions}
-          onComplete={completeDraft}
-          onSimulate={simulateFromDraft}
-          onCancel={() => setScreen('result')}
-        />
-      )}
-      {screen === 'game' && teams && gameResult && (
-        <GameResultScreen teams={teams} result={gameResult} onBackToResult={() => setScreen('result')} onReset={reset} />
-      )}
+      <div style={{ flex: 1 }}>
+        {screen === 'input' && (
+          <InputScreen
+            slots={slots}
+            filledCount={filledCount}
+            onQueryChange={setQuery}
+            onCommit={commit}
+            onTogglePref={togglePref}
+            onClearAll={clearAll}
+            onClearSlot={clearSlot}
+            saved={displaySaved}
+            onPickSaved={fillFromSaved}
+            onFillMany={() => fillManyFromSaved(displaySaved)}
+            onDeleteSaved={deleteSaved}
+            onStart={start}
+          />
+        )}
+        {screen === 'analyzing' && (
+          <AnalyzingScreen rows={analyzeRows} currentText={analyzeCurrent} percent={Math.round((analyzeDone / 10) * 100)} />
+        )}
+        {screen === 'result' && teams && activeRates && (
+          <ResultScreen
+            teams={teams}
+            rates={activeRates}
+            dragSrc={dragSrc}
+            onDragStart={onDragStart}
+            onDrop={onDrop}
+            onDragEnd={onDragEnd}
+            summaryOpen={summaryOpen}
+            onToggleSummary={() => setSummaryOpen((v) => !v)}
+            champPicks={champPicks}
+            onSelectChamp={onSelectChamp}
+            allChampions={allChampions}
+            onReshuffle={reshuffle}
+            onCopy={copyResult}
+            onReset={reset}
+            onStartGame={startGame}
+            onStartDraft={startDraft}
+            teamOrigin={teamOrigin}
+            aiStatus={aiStatus}
+            aiAnalysis={aiAnalysis}
+            onAiMatch={runAiMatch}
+            onAiReanalyze={runAiReanalyze}
+          />
+        )}
+        {screen === 'draft' && teams && (
+          <DraftScreen
+            teams={teams}
+            allChampions={allChampions}
+            onComplete={completeDraft}
+            onSimulate={simulateFromDraft}
+            onCancel={() => setScreen('result')}
+          />
+        )}
+        {screen === 'game' && teams && gameResult && (
+          <GameResultScreen teams={teams} result={gameResult} onBackToResult={() => setScreen('result')} onReset={reset} />
+        )}
+      </div>
       <Toast message={toast} />
       <Footer />
     </div>

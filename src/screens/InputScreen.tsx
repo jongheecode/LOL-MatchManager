@@ -102,13 +102,14 @@ export function InputScreen({
           position: 'fixed',
           left: 0,
           right: 0,
-          bottom: 0,
-          padding: '18px 44px 26px',
-          background: 'linear-gradient(0deg, #080b13 30%, rgba(8,11,19,0))',
+          bottom: 24,
+          display: 'flex',
+          justifyContent: 'center',
+          pointerEvents: 'none',
           zIndex: 30,
         }}
       >
-        <div style={{ maxWidth: 1440, margin: '0 auto', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ pointerEvents: 'auto', borderRadius: 15, boxShadow: '0 14px 40px rgba(8,11,19,.7)' }}>
           <button
             type="button"
             onClick={onStart}

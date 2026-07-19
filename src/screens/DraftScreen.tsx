@@ -70,6 +70,31 @@ export function DraftScreen({
 
   const handleUndo = () => setHistory((h) => h.slice(0, -1));
 
+  const handleAutoComplete = () => {
+    setHistory((h) => {
+      const next = [...h];
+      const excluded = new Set(next.map((a) => a.champ.name));
+      let bStep = next.filter((a) => a.kind === 'ban').length;
+      let pStep = next.filter((a) => a.kind === 'pick').length;
+      while (bStep < BAN_ORDER.length || pStep < PICK_ORDER.length) {
+        const pool = allChampions.filter((c) => !excluded.has(c.name));
+        const champ = pool[Math.floor(Math.random() * pool.length)];
+        if (!champ) break;
+        excluded.add(champ.name);
+        if (bStep < BAN_ORDER.length) {
+          next.push({ kind: 'ban', team: BAN_ORDER[bStep], champ });
+          bStep++;
+        } else {
+          const team = PICK_ORDER[pStep];
+          const posIndex = PICK_ORDER.slice(0, pStep).filter((t) => t === team).length;
+          next.push({ kind: 'pick', puuid: teams[team][posIndex].player.puuid, champ });
+          pStep++;
+        }
+      }
+      return next;
+    });
+  };
+
   const turnText =
     phase === 'ban'
       ? `밴 ${bansByTeam[currentTeam!].length + 1}/${BANS_PER_TEAM}`
@@ -85,6 +110,11 @@ export function DraftScreen({
           <button type="button" onClick={handleUndo} disabled={history.length === 0} style={ghostBtnStyle(history.length === 0)}>
             이전으로
           </button>
+          {phase !== 'done' && (
+            <button type="button" onClick={handleAutoComplete} style={ghostBtnStyle(false)}>
+              자동 완성
+            </button>
+          )}
           <button type="button" onClick={onCancel} style={ghostBtnStyle(false)}>
             드래프트 취소
           </button>

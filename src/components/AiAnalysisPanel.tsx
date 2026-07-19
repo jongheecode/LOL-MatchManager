@@ -127,7 +127,7 @@ export function AiAnalysisPanel({
             {analysis}
           </div>
           <div style={{ fontSize: 11.5, color: '#6f7b96', margin: '0 2px 10px', letterSpacing: 0.3 }}>
-            라인별 매치업 <span style={{ color: '#55617a' }}>· AI 분석</span>
+            라인별 매치업 <span style={{ color: '#7f8aa3' }}>· AI 분석</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {laneMatchups.map((m) => {

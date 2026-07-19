@@ -62,7 +62,7 @@ export function ChampGrid({
           </button>
         ))}
         {filtered.length === 0 && (
-          <div style={{ gridColumn: '1/-1', textAlign: 'center', color: '#55617a', fontSize: 12, padding: 20 }}>검색 결과가 없어요</div>
+          <div style={{ gridColumn: '1/-1', textAlign: 'center', color: '#7f8aa3', fontSize: 12, padding: 20 }}>검색 결과가 없어요</div>
         )}
       </div>
     </div>

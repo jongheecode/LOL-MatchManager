@@ -57,7 +57,7 @@ export function SavedPlayerList({
         }}
       >
         {saved.length === 0 && (
-          <div style={{ fontSize: 12, color: '#55617a', padding: '10px 4px', lineHeight: 1.6 }}>
+          <div style={{ fontSize: 12, color: '#7f8aa3', padding: '10px 4px', lineHeight: 1.6 }}>
             Riot ID를 조회하면 이 목록에 자동으로 저장돼요. 다음 내전 때 바로 불러와서 쓸 수 있어요.
           </div>
         )}
