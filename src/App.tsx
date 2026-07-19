@@ -12,6 +12,7 @@ import { ResultScreen } from './screens/ResultScreen';
 import { DraftScreen } from './screens/DraftScreen';
 import { GameResultScreen } from './screens/GameResultScreen';
 import { Toast } from './components/Toast';
+import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 
 const POS_KO: Record<string, string> = { TOP: '탑', JG: '정글', MID: '미드', AD: '원딜', SUP: '서폿' };
@@ -256,7 +257,7 @@ export default function App() {
       const pick = champPicks[c.player.puuid];
       return `  ${POS_KO[c.pos]} ${c.player.name}#${c.player.tag} (${c.player.tier.text})${pick ? ` — 픽: ${pick.name}` : ''}`;
     };
-    const text = `⚔️ 내전 팀 매칭 결과\n\n🔵 BLUE (예상 ${activeRates.blue}%)\n${teams.blue.map(line).join('\n')}\n\n🔴 RED (예상 ${activeRates.red}%)\n${teams.red.map(line).join('\n')}\n\n— PENTABALANCE`;
+    const text = `⚔️ 내전 팀 매칭 결과\n\n🔵 BLUE (예상 ${activeRates.blue}%)\n${teams.blue.map(line).join('\n')}\n\n🔴 RED (예상 ${activeRates.red}%)\n${teams.red.map(line).join('\n')}\n\n— MatchManager`;
     navigator.clipboard?.writeText(text).catch(() => {});
     flashToast('디스코드용 텍스트를 복사했습니다');
   };
@@ -318,6 +319,7 @@ export default function App() {
 
   return (
     <div className="app-shell">
+      <Header onHome={reset} />
       {screen === 'input' && (
         <InputScreen
           slots={slots}

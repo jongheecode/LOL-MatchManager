@@ -242,25 +242,25 @@ if (fs.existsSync(path.join(clientDist, 'index.html'))) {
     res.sendFile(path.join(clientDist, 'index.html'));
   });
   // eslint-disable-next-line no-console
-  console.log(`[pentabalance] serving frontend build from ${clientDist}`);
+  console.log(`[matchmanager] serving frontend build from ${clientDist}`);
 }
 
 async function main() {
   await getDdragon().catch((err) => {
     // eslint-disable-next-line no-console
-    console.warn('[pentabalance] failed to preload Data Dragon champion data, will retry lazily:', err);
+    console.warn('[matchmanager] failed to preload Data Dragon champion data, will retry lazily:', err);
   });
   startDdragonRefresh();
   app.listen(PORT, () => {
     // eslint-disable-next-line no-console
-    console.log(`[pentabalance] server listening on http://localhost:${PORT} (platform=${DEFAULT_PLATFORM}, regional=${DEFAULT_REGIONAL})`);
+    console.log(`[matchmanager] server listening on http://localhost:${PORT} (platform=${DEFAULT_PLATFORM}, regional=${DEFAULT_REGIONAL})`);
   });
   // Warm the roster cache in the background (low priority) so it's usually ready before anyone
   // asks for it, without delaying server startup or an early visitor's own request.
   if (RIOT_API_KEY) {
     warmRoster().catch((err) => {
       // eslint-disable-next-line no-console
-      console.warn('[pentabalance] roster warmup failed, will retry lazily on next request:', err);
+      console.warn('[matchmanager] roster warmup failed, will retry lazily on next request:', err);
     });
   }
 }

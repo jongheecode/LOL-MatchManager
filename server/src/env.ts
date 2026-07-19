@@ -18,6 +18,6 @@ export const APP_ORIGIN = process.env.APP_ORIGIN || '';
 if (!RIOT_API_KEY) {
   // eslint-disable-next-line no-console
   console.warn(
-    '[pentabalance] RIOT_API_KEY is not set. Copy server/.env.example to server/.env and paste a key from https://developer.riotgames.com/',
+    '[matchmanager] RIOT_API_KEY is not set. Copy server/.env.example to server/.env and paste a key from https://developer.riotgames.com/',
   );
 }

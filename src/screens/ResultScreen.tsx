@@ -1,7 +1,6 @@
 import type { AiAnalysis, ChampSummary, Rates, Teams } from '../types';
 import type { ChampPicks, TeamSlotRef } from '../lib/balance';
 import { topScore } from '../lib/balance';
-import { Logo } from '../components/Logo';
 import { WinGauge } from '../components/WinGauge';
 import { ResultCard } from '../components/ResultCard';
 import { BalanceSummary } from '../components/BalanceSummary';
@@ -67,10 +66,7 @@ export function ResultScreen({
   return (
     <div style={{ maxWidth: 1440, margin: '0 auto', padding: '26px 40px 40px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Logo size={34} fontSize={17} />
-          <div style={{ fontFamily: 'Rajdhani', fontWeight: 700, fontSize: 20, letterSpacing: 0.5 }}>매칭 결과</div>
-        </div>
+        <div style={{ fontFamily: 'Rajdhani', fontWeight: 700, fontSize: 20, letterSpacing: 0.5 }}>매칭 결과</div>
         <div style={{ fontSize: 12, color: '#6f7b96' }}>
           카드 <span style={{ color: '#d8b463' }}>드래그</span>로 팀 스왑 · 챔피언 아이콘을 눌러 <span style={{ color: '#d8b463' }}>이번 판 픽</span> 지정 — 승률에 실시간 반영
         </div>

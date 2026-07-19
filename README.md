@@ -1,9 +1,9 @@
-# PENTABALANCE
+# MatchManager
 
 리그 오브 레전드 5:5 내전, 팀을 어떻게 나눠야 할지 고민될 때 쓰는 팀 밸런스 매칭 웹앱입니다.
 소환사 10명의 실제 전적을 불러와서 최대한 공평하게 두 팀으로 나눠줍니다.
 
-**바로 써보기**: https://pentabalance.onrender.com
+**바로 써보기**: https://matchmanager.onrender.com
 
 ## 사용법
 
@@ -192,7 +192,7 @@ npm --prefix server run test
 
 ---
 
-PENTABALANCE isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone
+MatchManager isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone
 officially involved in producing or managing League of Legends. League of Legends and Riot Games are trademarks
 or registered trademarks of Riot Games, Inc. League of Legends © Riot Games, Inc.
 

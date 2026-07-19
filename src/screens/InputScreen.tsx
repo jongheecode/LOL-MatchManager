@@ -1,5 +1,4 @@
 import type { Position, SavedPlayer, Slot } from '../types';
-import { Logo, Wordmark } from '../components/Logo';
 import { SlotCard } from '../components/SlotCard';
 import { SavedPlayerList } from '../components/SavedPlayerList';
 
@@ -36,9 +35,9 @@ export function InputScreen({
   return (
     <div style={{ maxWidth: 1440, margin: '0 auto', padding: '30px 44px 120px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 30 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <Logo />
-          <Wordmark subtitle="10명만 넣으면 끝. 공정한 5:5 내전 팀 자동 매칭" />
+        <div>
+          <div style={{ fontFamily: 'Rajdhani', fontWeight: 700, fontSize: 22, letterSpacing: 0.3 }}>내전 팀 짜기</div>
+          <div style={{ fontSize: 12.5, color: '#8b93a7', marginTop: 3 }}>10명만 넣으면 끝. 공정한 5:5 내전 팀 자동 매칭</div>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <div style={{ fontFamily: "'IBM Plex Mono'", fontSize: 13, color: '#8b93a7' }}>

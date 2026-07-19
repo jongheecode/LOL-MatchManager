@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: pentabalance
+    name: matchmanager
     runtime: node
     plan: free
     buildCommand: npm install && npm run build && npm --prefix server install && npm --prefix server run build
@@ -25,4 +25,4 @@ services:
       - key: AI_MAX_CONCURRENT
         value: 2
       - key: APP_ORIGIN
-        value: https://pentabalance.onrender.com
+        value: https://matchmanager.onrender.com
