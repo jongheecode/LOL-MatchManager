@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { ChampSummary, GameResult, Player, SavedPlayer, Screen, Teams } from './types';
+import type { AiAnalysis, AiPick, ChampSummary, GameResult, Player, SavedPlayer, Screen, Teams } from './types';
 import { useSlots } from './hooks/useSlots';
-import { fetchMeta, fetchChampions, fetchRoster, analyzeStream, type AnalyzePlayerInput } from './lib/api';
+import { aiAnalyze, aiMatchmake, fetchMeta, fetchChampions, fetchRoster, analyzeStream, type AnalyzePlayerInput } from './lib/api';
 import { setDdragonVersion } from './lib/avatar';
 import { forgetPlayer, getSavedPlayers, toSavedPlayer } from './lib/storage';
-import { buildTeams, needsManualPick, rates as computeRates, swapPlayers, type ChampPicks, type TeamSlotRef } from './lib/balance';
+import { buildTeams, needsManualPick, rates as computeRates, swapPlayers, teamsFromAi, type ChampPicks, type TeamSlotRef } from './lib/balance';
 import { simulateGame } from './lib/gameSim';
 import { InputScreen } from './screens/InputScreen';
 import { AnalyzingScreen, type AnalyzeRow } from './screens/AnalyzingScreen';
@@ -23,6 +23,10 @@ export default function App() {
   const [roster, setRoster] = useState<SavedPlayer[]>([]);
 
   const [teams, setTeams] = useState<Teams | null>(null);
+  const [analyzedPlayers, setAnalyzedPlayers] = useState<Player[]>([]);
+  const [teamOrigin, setTeamOrigin] = useState<'algo' | 'ai'>('algo');
+  const [aiStatus, setAiStatus] = useState<'idle' | 'loading' | 'fresh' | 'stale'>('idle');
+  const [aiAnalysis, setAiAnalysis] = useState<AiAnalysis | null>(null);
   const [dragSrc, setDragSrc] = useState<TeamSlotRef | null>(null);
   const [summaryOpen, setSummaryOpen] = useState(true);
   const [champPicks, setChampPicks] = useState<ChampPicks>({});
@@ -121,7 +125,12 @@ export default function App() {
         setAnalyzeRows((prev) => prev.map((r, i) => (i === ev.index ? { ...r, state: 'error' } : r)));
         setAnalyzeDone((d) => d + 1);
       } else if (ev.type === 'complete') {
+        setAnalyzedPlayers(results);
         setTeams(buildTeams(results, false));
+        setTeamOrigin('algo');
+        setAiStatus('idle');
+        setAiAnalysis(null);
+        setChampPicks({});
         setScreen('result');
       }
     }).catch((err) => {
@@ -131,6 +140,77 @@ export default function App() {
   };
 
   const rates = useMemo(() => (teams ? computeRates(teams, champPicks) : null), [teams, champPicks]);
+  // In AI mode (fresh), the win-rate the whole UI consumes is the model's number; everything else
+  // (score/form/KDA breakdown) still comes from the algorithm. stale/idle fall back to the algorithm %.
+  const activeRates = useMemo(() => {
+    if (!rates) return null;
+    if (aiStatus === 'fresh' && aiAnalysis) return { ...rates, blue: aiAnalysis.blueWinRate, red: 100 - aiAnalysis.blueWinRate };
+    return rates;
+  }, [rates, aiStatus, aiAnalysis]);
+
+  const picksForAi = (): AiPick[] =>
+    Object.entries(champPicks)
+      .map(([puuid, champ]) => ({ puuid, champKey: champ.iconId }))
+      .filter((p) => p.champKey);
+
+  // Monotonic id for the in-flight AI request. Any team/pick edit (or a new AI request) bumps it, so a
+  // late response from a superseded request is discarded instead of being applied as if it were fresh.
+  const aiReqId = useRef(0);
+
+  const runAiMatch = () => {
+    if (aiStatus === 'loading' || analyzedPlayers.length < 10) return;
+    const myReq = ++aiReqId.current;
+    setAiStatus('loading');
+    aiMatchmake(analyzedPlayers)
+      .then((result) => {
+        if (aiReqId.current !== myReq) return; // superseded by an edit → discard stale response
+        setTeams(teamsFromAi(result, analyzedPlayers));
+        setAiAnalysis({ blueWinRate: result.blueWinRate, analysis: result.analysis, laneMatchups: result.laneMatchups });
+        setTeamOrigin('ai');
+        setAiStatus('fresh');
+        setChampPicks({}); // AI may move players to new lanes → old picks no longer match their slot
+        flashToast('AI가 팀을 새로 구성했습니다');
+      })
+      .catch((err) => {
+        if (aiReqId.current !== myReq) return;
+        // Teams weren't replaced (we only setTeams on success). If we already had a fresh AI result,
+        // restore it so the gauge and the analysis panel stay consistent; otherwise fall back to algo.
+        const hadAiResult = teamOrigin === 'ai' && !!aiAnalysis;
+        setAiStatus(hadAiResult ? 'fresh' : 'idle');
+        flashToast(`AI 매칭 실패 — 기존 결과를 유지합니다: ${err instanceof Error ? err.message : ''}`);
+      });
+  };
+
+  const runAiReanalyze = () => {
+    if (aiStatus === 'loading' || !teams) return;
+    const myReq = ++aiReqId.current;
+    setAiStatus('loading');
+    const blue = teams.blue.map((e) => ({ puuid: e.player.puuid, pos: e.pos }));
+    const red = teams.red.map((e) => ({ puuid: e.player.puuid, pos: e.pos }));
+    aiAnalyze(blue, red, analyzedPlayers, picksForAi())
+      .then((analysis) => {
+        if (aiReqId.current !== myReq) return; // discard if the team/picks changed mid-request
+        setAiAnalysis(analysis);
+        setAiStatus('fresh');
+        flashToast('AI 분석을 갱신했습니다');
+      })
+      .catch((err) => {
+        if (aiReqId.current !== myReq) return;
+        setAiStatus('stale');
+        flashToast(`AI 재분석 실패: ${err instanceof Error ? err.message : ''}`);
+      });
+  };
+
+  // Any hand-edit invalidates an in-flight or fresh AI analysis. Bumping aiReqId discards a pending
+  // response; the status drops to stale (if an AI analysis exists) or idle (mid first-ever match).
+  const invalidateAi = () => {
+    aiReqId.current += 1;
+    setAiStatus((s) => {
+      if (s === 'loading') return aiAnalysis ? 'stale' : 'idle';
+      if (teamOrigin === 'ai' && s === 'fresh') return 'stale';
+      return s;
+    });
+  };
 
   const onSelectChamp = (puuid: string, champ: ChampSummary | null) => {
     setChampPicks((prev) => {
@@ -142,6 +222,7 @@ export default function App() {
       }
       return { ...prev, [puuid]: champ };
     });
+    invalidateAi();
   };
 
   const onDragStart = (ref: TeamSlotRef) => setDragSrc(ref);
@@ -153,40 +234,51 @@ export default function App() {
     }
     setTeams(swapPlayers(teams, dragSrc, dst));
     setDragSrc(null);
+    invalidateAi();
   };
 
   const reshuffle = () => {
     if (!teams) return;
     const players = [...teams.blue, ...teams.red].map((c) => c.player);
     setTeams(buildTeams(players, true));
+    aiReqId.current += 1; // discard any in-flight AI response
+    setTeamOrigin('algo');
+    setAiStatus('idle');
+    setAiAnalysis(null);
     flashToast('새로운 조합으로 다시 짰습니다');
   };
 
   const copyResult = () => {
-    if (!teams || !rates) return;
+    if (!teams || !activeRates) return;
     const line = (c: Teams['blue'][number]) => {
       const pick = champPicks[c.player.puuid];
       return `  ${POS_KO[c.pos]} ${c.player.name}#${c.player.tag} (${c.player.tier.text})${pick ? ` — 픽: ${pick.name}` : ''}`;
     };
-    const text = `⚔️ 내전 팀 매칭 결과\n\n🔵 BLUE (예상 ${rates.blue}%)\n${teams.blue.map(line).join('\n')}\n\n🔴 RED (예상 ${rates.red}%)\n${teams.red.map(line).join('\n')}\n\n— PENTABALANCE`;
+    const text = `⚔️ 내전 팀 매칭 결과\n\n🔵 BLUE (예상 ${activeRates.blue}%)\n${teams.blue.map(line).join('\n')}\n\n🔴 RED (예상 ${activeRates.red}%)\n${teams.red.map(line).join('\n')}\n\n— PENTABALANCE`;
     navigator.clipboard?.writeText(text).catch(() => {});
     flashToast('디스코드용 텍스트를 복사했습니다');
   };
 
   const startGame = () => {
-    if (!teams || !rates) return;
+    if (!teams || !activeRates) return;
+    if (aiStatus === 'loading') return; // don't simulate against teams an in-flight AI match may replace
     const blockers = [...teams.blue, ...teams.red].filter((e) => needsManualPick(e, champPicks));
     if (blockers.length > 0) {
       flashToast(`이 라인 전적이 없는 선수는 챔피언을 직접 선택해주세요: ${blockers.map((e) => e.player.name).join(', ')}`);
       return;
     }
-    setGameResult(simulateGame(teams, rates, champPicks));
+    setGameResult(simulateGame(teams, activeRates, champPicks));
     setScreen('game');
   };
 
   const reset = () => {
     setScreen('input');
     setTeams(null);
+    setAnalyzedPlayers([]);
+    aiReqId.current += 1; // discard any in-flight AI response
+    setTeamOrigin('algo');
+    setAiStatus('idle');
+    setAiAnalysis(null);
     setDragSrc(null);
     setChampPicks({});
     setGameResult(null);
@@ -218,10 +310,10 @@ export default function App() {
       {screen === 'analyzing' && (
         <AnalyzingScreen rows={analyzeRows} currentText={analyzeCurrent} percent={Math.round((analyzeDone / 10) * 100)} />
       )}
-      {screen === 'result' && teams && rates && (
+      {screen === 'result' && teams && activeRates && (
         <ResultScreen
           teams={teams}
-          rates={rates}
+          rates={activeRates}
           dragSrc={dragSrc}
           onDragStart={onDragStart}
           onDrop={onDrop}
@@ -235,6 +327,11 @@ export default function App() {
           onCopy={copyResult}
           onReset={reset}
           onStartGame={startGame}
+          teamOrigin={teamOrigin}
+          aiStatus={aiStatus}
+          aiAnalysis={aiAnalysis}
+          onAiMatch={runAiMatch}
+          onAiReanalyze={runAiReanalyze}
         />
       )}
       {screen === 'game' && teams && gameResult && (

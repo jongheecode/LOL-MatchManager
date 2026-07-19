@@ -1,4 +1,16 @@
-import type { AnalyzeEvent, ChampSummary, LookupError, LookupResponse, Player, Position } from '../types';
+import type {
+  AiAnalysis,
+  AiMatchResult,
+  AiPick,
+  AiPlayerInput,
+  AiTeamAssignment,
+  AnalyzeEvent,
+  ChampSummary,
+  LookupError,
+  LookupResponse,
+  Player,
+  Position,
+} from '../types';
 
 export interface Meta {
   ddragonVersion: string;
@@ -78,4 +90,53 @@ export async function analyzeStream(
     }
   }
   if (buffer.trim()) onEvent(JSON.parse(buffer.trim()) as AnalyzeEvent);
+}
+
+/** Reduce a full Player to the anonymized-ready stats the AI backend accepts (no name/tier free strings;
+ * champions become Data Dragon keys, empty icons dropped). The backend strips puuid before Gemini. */
+export function toAiPlayerInput(p: Player): AiPlayerInput {
+  const kda = p.avgStats ? (p.avgStats.kills + p.avgStats.assists) / Math.max(1, p.avgStats.deaths) : null;
+  const lanes: AiPlayerInput['lanes'] = {};
+  for (const [pos, pool] of Object.entries(p.posChampPool)) {
+    const entries = (pool ?? [])
+      .filter((e) => e.champ.iconId)
+      .slice(0, 3)
+      .map((e) => ({ champKey: e.champ.iconId, games: e.games, wr: e.winRate }));
+    if (entries.length) lanes[pos as Position] = entries;
+  }
+  return {
+    puuid: p.puuid,
+    score: p.score,
+    mainPos: p.mainPos,
+    pref: p.pref,
+    form: p.form,
+    mainRoleKda: kda == null ? null : Math.round(kda * 100) / 100,
+    lanes,
+  };
+}
+
+async function postAi<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((data as { message?: string })?.message || `AI 요청 실패 (${res.status})`);
+  return data as T;
+}
+
+/** AI composes balanced teams + win rate + analysis from the analyzed players. */
+export function aiMatchmake(players: Player[]): Promise<AiMatchResult> {
+  return postAi<AiMatchResult>('/api/ai/matchmake', { players: players.map(toAiPlayerInput) });
+}
+
+/** AI re-analyzes an already-composed team (e.g. after drag/champ change) — no re-composition. */
+export function aiAnalyze(
+  blue: AiTeamAssignment[],
+  red: AiTeamAssignment[],
+  players: Player[],
+  picks: AiPick[],
+): Promise<AiAnalysis> {
+  return postAi<AiAnalysis>('/api/ai/analyze', { blue, red, players: players.map(toAiPlayerInput), picks });
 }

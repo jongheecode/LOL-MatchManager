@@ -37,7 +37,16 @@ async function load(): Promise<DdragonState> {
 
 export async function getDdragon(): Promise<DdragonState> {
   if (state) return state;
-  if (!loading) loading = load().then((s) => (state = s));
+  if (!loading) {
+    loading = load()
+      .then((s) => (state = s))
+      .catch((err) => {
+        // Don't cache the failure — a transient error at boot must not wedge getDdragon() (and the
+        // AI routes that gate on it) into a permanent 503 until the next 12h refresh.
+        loading = null;
+        throw err;
+      });
+  }
   return loading;
 }
 
