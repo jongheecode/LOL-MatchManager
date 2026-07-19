@@ -12,6 +12,7 @@ import { ResultScreen } from './screens/ResultScreen';
 import { DraftScreen } from './screens/DraftScreen';
 import { GameResultScreen } from './screens/GameResultScreen';
 import { Toast } from './components/Toast';
+import { Footer } from './components/Footer';
 
 const POS_KO: Record<string, string> = { TOP: '탑', JG: '정글', MID: '미드', AD: '원딜', SUP: '서폿' };
 
@@ -374,6 +375,7 @@ export default function App() {
         <GameResultScreen teams={teams} result={gameResult} onBackToResult={() => setScreen('result')} onReset={reset} />
       )}
       <Toast message={toast} />
+      <Footer />
     </div>
   );
 }
