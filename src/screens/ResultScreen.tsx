@@ -5,6 +5,7 @@ import { Logo } from '../components/Logo';
 import { WinGauge } from '../components/WinGauge';
 import { ResultCard } from '../components/ResultCard';
 import { BalanceSummary } from '../components/BalanceSummary';
+import { teamRgba } from '../lib/colors';
 
 export function ResultScreen({
   teams,
@@ -85,7 +86,7 @@ export function ResultScreen({
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 100, gap: 12 }}>
           <div style={{ fontFamily: 'Rajdhani', fontWeight: 700, fontSize: 22, color: '#4a5573' }}>VS</div>
-          <div style={{ width: 1, flex: 1, background: 'linear-gradient(#5aa9ff33, #2a3350, #f0656a33)', minHeight: 200 }} />
+          <div style={{ width: 1, flex: 1, background: `linear-gradient(${teamRgba('blue', 0.2)}, #2a3350, ${teamRgba('red', 0.2)})`, minHeight: 200 }} />
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

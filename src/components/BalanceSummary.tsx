@@ -3,6 +3,7 @@ import { effectiveWr } from '../lib/balance';
 import { tierFromScore } from '../lib/tier';
 import { POSITION_ORDER, posLabel } from '../lib/positions';
 import type { Rates, TeamEntry, Teams } from '../types';
+import { teamColor } from '../lib/colors';
 
 function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v));
@@ -47,7 +48,7 @@ export function BalanceSummary({
     const redPct = 100 - bluePct;
     const favorGap = Math.abs(bluePct - 50);
     const favorLabel = favorGap <= 4 ? '백중세' : bluePct > 50 ? '블루 우세' : '레드 우세';
-    const favorColor = favorGap <= 4 ? '#d8b463' : bluePct > 50 ? '#5aa9ff' : '#f0656a';
+    const favorColor = favorGap <= 4 ? '#d8b463' : bluePct > 50 ? teamColor('blue') : teamColor('red');
     return {
       pos,
       blueName: b.player.name,
@@ -133,12 +134,12 @@ export function BalanceSummary({
                     <span style={{ fontSize: 10.5, color: m.favorColor, fontWeight: 600, whiteSpace: 'nowrap' }}>{m.favorLabel}</span>
                   </div>
                   <div style={{ width: '100%', height: 6, background: '#131a29', borderRadius: 4, overflow: 'hidden', display: 'flex' }}>
-                    <div style={{ height: '100%', background: '#5aa9ff', width: `${m.bluePct}%` }} />
-                    <div style={{ height: '100%', flex: 1, background: '#f0656a' }} />
+                    <div style={{ height: '100%', background: teamColor('blue'), width: `${m.bluePct}%` }} />
+                    <div style={{ height: '100%', flex: 1, background: teamColor('red') }} />
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontFamily: "'IBM Plex Mono'", fontSize: 10 }}>
-                    <span style={{ color: '#5aa9ff' }}>{m.bluePct}%</span>
-                    <span style={{ color: '#f0656a' }}>{m.redPct}%</span>
+                    <span style={{ color: teamColor('blue') }}>{m.bluePct}%</span>
+                    <span style={{ color: teamColor('red') }}>{m.redPct}%</span>
                   </div>
                 </div>
                 <div style={{ minWidth: 0, textAlign: 'right' }}>

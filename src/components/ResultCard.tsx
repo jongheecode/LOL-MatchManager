@@ -8,6 +8,7 @@ import { HEX_CLIP } from './Hexagon';
 import { posColor, posLabel } from '../lib/positions';
 import { champPoolFor, effectiveWr, reasonText } from '../lib/balance';
 import { posEmblemGradient } from '../lib/avatar';
+import { teamColor, teamDarkRgba, teamRgba } from '../lib/colors';
 
 export function ResultCard({
   entry,
@@ -35,7 +36,7 @@ export function ResultCard({
   onDragEnd: () => void;
 }) {
   const p = entry.player;
-  const accent = team === 'blue' ? '#5aa9ff' : '#f0656a';
+  const accent = teamColor(team);
   const pool = champPoolFor(entry);
   // Nothing explicitly picked yet still resolves to the top pool champ (same fallback the win-rate
   // math and the simulator use) — so the highlighted circle always matches what would actually play.
@@ -53,8 +54,8 @@ export function ResultCard({
 
   const bg =
     team === 'blue'
-      ? 'linear-gradient(100deg, rgba(47,95,176,.16), rgba(15,20,34,.4))'
-      : 'linear-gradient(260deg, rgba(176,53,58,.16), rgba(15,20,34,.4))';
+      ? `linear-gradient(100deg, ${teamDarkRgba('blue', 0.16)}, rgba(15,20,34,.4))`
+      : `linear-gradient(260deg, ${teamDarkRgba('red', 0.16)}, rgba(15,20,34,.4))`;
 
   const posBlock = (
     <div style={{ width: 32, flex: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
@@ -192,7 +193,7 @@ export function ResultCard({
         padding: '13px 15px',
         borderRadius: 13,
         background: bg,
-        border: `1px solid ${dragging ? accent : team === 'blue' ? 'rgba(90,169,255,.28)' : 'rgba(240,101,106,.28)'}`,
+        border: `1px solid ${dragging ? accent : teamRgba(team, 0.28)}`,
         [team === 'blue' ? 'borderLeft' : 'borderRight']: `3px solid ${accent}`,
         cursor: 'grab',
         transition: 'border-color .15s, transform .15s, opacity .15s',

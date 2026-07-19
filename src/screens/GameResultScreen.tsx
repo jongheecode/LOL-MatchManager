@@ -4,6 +4,7 @@ import { Avatar } from '../components/Avatar';
 import { ChampIcon } from '../components/ChampIcon';
 import { posLabel } from '../lib/positions';
 import { kdaRatio, formatClock } from '../lib/gameSim';
+import { teamColor, teamDarkRgba, teamRgba } from '../lib/colors';
 
 const TICK_MS = 360;
 const BANNER_DELAY_MS = 450;
@@ -72,18 +73,18 @@ export function GameResultScreen({
   const redScore = shown.filter((e) => e.team === 'red').length;
   const lastT = revealedCount > 0 ? shown[revealedCount - 1].t : 0;
   const clock = showBoard ? result.durationSec : lastT;
-  const winnerColor = result.winner === 'blue' ? '#5aa9ff' : '#f0656a';
+  const winnerColor = teamColor(result.winner);
 
   return (
     <div style={{ maxWidth: 1180, margin: '0 auto', padding: '26px 40px 44px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 30, marginBottom: 6 }}>
-        <span style={{ fontFamily: 'Rajdhani', fontWeight: 700, fontSize: 15, letterSpacing: 3, color: '#5aa9ff' }}>BLUE</span>
-        <span style={{ fontFamily: "'IBM Plex Mono'", fontWeight: 600, fontSize: 52, color: '#5aa9ff', lineHeight: 1, minWidth: 60, textAlign: 'right' }}>
+        <span style={{ fontFamily: 'Rajdhani', fontWeight: 700, fontSize: 15, letterSpacing: 3, color: teamColor('blue') }}>BLUE</span>
+        <span style={{ fontFamily: "'IBM Plex Mono'", fontWeight: 600, fontSize: 52, color: teamColor('blue'), lineHeight: 1, minWidth: 60, textAlign: 'right' }}>
           {blueScore}
         </span>
         <span style={{ fontFamily: 'Rajdhani', fontSize: 26, color: '#4a5573' }}>:</span>
-        <span style={{ fontFamily: "'IBM Plex Mono'", fontWeight: 600, fontSize: 52, color: '#f0656a', lineHeight: 1, minWidth: 60 }}>{redScore}</span>
-        <span style={{ fontFamily: 'Rajdhani', fontWeight: 700, fontSize: 15, letterSpacing: 3, color: '#f0656a' }}>RED</span>
+        <span style={{ fontFamily: "'IBM Plex Mono'", fontWeight: 600, fontSize: 52, color: teamColor('red'), lineHeight: 1, minWidth: 60 }}>{redScore}</span>
+        <span style={{ fontFamily: 'Rajdhani', fontWeight: 700, fontSize: 15, letterSpacing: 3, color: teamColor('red') }}>RED</span>
       </div>
       <div style={{ textAlign: 'center', fontFamily: "'IBM Plex Mono'", fontSize: 13, color: '#8b93a7', marginBottom: 18 }}>
         경기 시간 <span style={{ color: '#d8b463' }}>{formatClock(clock)}</span> / {formatClock(result.durationSec)}
@@ -106,7 +107,7 @@ export function GameResultScreen({
         />
         {result.events.map((ev, i) => {
           const revealed = i < revealedCount;
-          const col = ev.team === 'blue' ? '#5aa9ff' : '#f0656a';
+          const col = teamColor(ev.team);
           const size = revealed ? 9 : 6;
           return (
             <div
@@ -132,7 +133,7 @@ export function GameResultScreen({
         {shown.map((ev, i) => {
           const killer = index.get(ev.killerPuuid);
           const victim = index.get(ev.victimPuuid);
-          const col = ev.team === 'blue' ? '#5aa9ff' : '#f0656a';
+          const col = teamColor(ev.team);
           if (!killer || !victim) return null;
           return (
             <div
@@ -145,7 +146,7 @@ export function GameResultScreen({
                 borderRadius: 9,
                 marginTop: 7,
                 flex: 'none',
-                background: `linear-gradient(90deg, ${ev.team === 'blue' ? 'rgba(90,169,255,.13)' : 'rgba(240,101,106,.13)'}, transparent)`,
+                background: `linear-gradient(90deg, ${teamRgba(ev.team, 0.13)}, transparent)`,
                 borderLeft: `3px solid ${col}`,
                 animation: 'killIn .45s ease both',
               }}
@@ -201,10 +202,10 @@ export function GameResultScreen({
       {showBoard && (
         <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, animation: 'fadeUp .4s both' }}>
           {(['blue', 'red'] as const).map((team) => {
-            const accent = team === 'blue' ? '#5aa9ff' : '#f0656a';
-            const bg = team === 'blue' ? 'rgba(47,95,176,.1)' : 'rgba(176,53,58,.1)';
-            const headerBg = team === 'blue' ? 'rgba(90,169,255,.07)' : 'rgba(240,101,106,.07)';
-            const border = team === 'blue' ? 'rgba(90,169,255,.22)' : 'rgba(240,101,106,.22)';
+            const accent = teamColor(team);
+            const bg = teamDarkRgba(team, 0.1);
+            const headerBg = teamRgba(team, 0.07);
+            const border = teamRgba(team, 0.22);
             return (
               <div key={team} style={{ background: `linear-gradient(160deg, ${bg}, #0d1220)`, border: `1px solid ${border}`, borderRadius: 13, overflow: 'hidden' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 15px', background: headerBg }}>
