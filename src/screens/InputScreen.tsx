@@ -99,17 +99,14 @@ export function InputScreen({
 
       <div
         style={{
-          position: 'fixed',
-          left: 0,
-          right: 0,
+          position: 'sticky',
           bottom: 24,
           display: 'flex',
           justifyContent: 'center',
-          pointerEvents: 'none',
           zIndex: 30,
         }}
       >
-        <div style={{ pointerEvents: 'auto', borderRadius: 15, boxShadow: '0 14px 40px rgba(8,11,19,.7)' }}>
+        <div style={{ borderRadius: 15, boxShadow: '0 14px 40px rgba(8,11,19,.7)' }}>
           <button
             type="button"
             onClick={onStart}
