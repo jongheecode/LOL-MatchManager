@@ -1,3 +1,6 @@
+/** Position, Trend, Tier, ChampSummary, MasteryChamp, Player, AnalyzeEvent, AiPlayerInput, AiPick,
+ * AiTeamAssignment, AiLaneMatchup, AiMatchResult, and AiAnalysis mirror the identically-named types
+ * in ../../src/types.ts (the API wire shapes) — there's no shared package, so keep both in sync by hand. */
 export type Position = 'TOP' | 'JG' | 'MID' | 'AD' | 'SUP';
 export type Trend = 'up' | 'flat' | 'down';
 
