@@ -1,6 +1,10 @@
 import type { AiMatchResult, AiTeamAssignment, ChampSummary, Player, Rates, TeamEntry, Teams } from '../types';
 import { POSITION_ORDER, posLabel } from './positions';
 
+/** Standard 10-slot snake order (blue picks 1st/4th/5th/8th/9th) — shared by the auto-balance draft
+ * and the manual mock-draft pick phase so both use the same "fairness" pattern. */
+export const SNAKE_PATTERN: ('B' | 'R')[] = ['B', 'R', 'R', 'B', 'B', 'R', 'R', 'B', 'B', 'R'];
+
 /** Snake-draft the 10 players into two balanced pools by score, then assign positions. */
 export function buildTeams(players: Player[], jitter: boolean): Teams {
   const arr = players.map((p) => ({
@@ -9,10 +13,9 @@ export function buildTeams(players: Player[], jitter: boolean): Teams {
   }));
   arr.sort((a, b) => b.key - a.key);
 
-  const pattern = ['B', 'R', 'R', 'B', 'B', 'R', 'R', 'B', 'B', 'R'];
   const blueP: Player[] = [];
   const redP: Player[] = [];
-  arr.forEach((x, i) => (pattern[i] === 'B' ? blueP : redP).push(x.p));
+  arr.forEach((x, i) => (SNAKE_PATTERN[i] === 'B' ? blueP : redP).push(x.p));
 
   return { blue: assign(blueP), red: assign(redP) };
 }

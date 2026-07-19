@@ -24,6 +24,7 @@ export function ResultScreen({
   onCopy,
   onReset,
   onStartGame,
+  onStartDraft,
   teamOrigin,
   aiStatus,
   aiAnalysis,
@@ -45,6 +46,7 @@ export function ResultScreen({
   onCopy: () => void;
   onReset: () => void;
   onStartGame: () => void;
+  onStartDraft: () => void;
   teamOrigin: 'algo' | 'ai';
   aiStatus: 'idle' | 'loading' | 'fresh' | 'stale';
   aiAnalysis: AiAnalysis | null;
@@ -179,6 +181,25 @@ export function ResultScreen({
           }}
         >
           결과 복사 (디스코드용)
+        </button>
+        <button
+          type="button"
+          onClick={onStartDraft}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            background: '#151c2d',
+            border: '1px solid #2a3350',
+            color: '#dbe1ee',
+            padding: '13px 22px',
+            borderRadius: 11,
+            fontSize: 14,
+            fontWeight: 500,
+            cursor: 'pointer',
+          }}
+        >
+          모의 밴픽
         </button>
         <button
           type="button"

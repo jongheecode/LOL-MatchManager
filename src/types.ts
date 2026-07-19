@@ -101,7 +101,7 @@ export interface Rates {
   };
 }
 
-export type Screen = 'input' | 'analyzing' | 'result' | 'game';
+export type Screen = 'input' | 'analyzing' | 'result' | 'draft' | 'game';
 
 /** A locally-remembered player, kept in localStorage so the sidebar has real history instead of mock data. */
 export interface SavedPlayer {

@@ -9,6 +9,7 @@ import { simulateGame } from './lib/gameSim';
 import { InputScreen } from './screens/InputScreen';
 import { AnalyzingScreen, type AnalyzeRow } from './screens/AnalyzingScreen';
 import { ResultScreen } from './screens/ResultScreen';
+import { DraftScreen } from './screens/DraftScreen';
 import { GameResultScreen } from './screens/GameResultScreen';
 import { Toast } from './components/Toast';
 
@@ -289,6 +290,18 @@ export default function App() {
     setSaved(getSavedPlayers());
   };
 
+  const startDraft = () => {
+    if (!teams) return;
+    setScreen('draft');
+  };
+
+  const completeDraft = (picks: ChampPicks) => {
+    setChampPicks(picks);
+    invalidateAi();
+    setScreen('result');
+    flashToast('모의 드래프트 결과를 반영했습니다');
+  };
+
   return (
     <div className="app-shell">
       {screen === 'input' && (
@@ -327,12 +340,16 @@ export default function App() {
           onCopy={copyResult}
           onReset={reset}
           onStartGame={startGame}
+          onStartDraft={startDraft}
           teamOrigin={teamOrigin}
           aiStatus={aiStatus}
           aiAnalysis={aiAnalysis}
           onAiMatch={runAiMatch}
           onAiReanalyze={runAiReanalyze}
         />
+      )}
+      {screen === 'draft' && teams && (
+        <DraftScreen teams={teams} allChampions={allChampions} onComplete={completeDraft} onCancel={() => setScreen('result')} />
       )}
       {screen === 'game' && teams && gameResult && (
         <GameResultScreen teams={teams} result={gameResult} onBackToResult={() => setScreen('result')} onReset={reset} />
