@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>개인정보처리방침 — MatchManager</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: #080b13;
+    color: #e8ebf3;
+    font-family: 'Noto Sans KR', system-ui, sans-serif;
+    line-height: 1.7;
+  }
+  .wrap {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+  h1 {
+    font-size: 26px;
+    font-weight: 700;
+    margin: 0 0 6px;
+  }
+  .updated {
+    font-size: 13px;
+    color: #7f8aa3;
+    margin-bottom: 36px;
+  }
+  h2 {
+    font-size: 17px;
+    font-weight: 700;
+    color: #eef2fb;
+    margin: 34px 0 10px;
+    padding-top: 4px;
+    border-top: 1px solid #1a2236;
+  }
+  h2:first-of-type { border-top: none; padding-top: 0; }
+  p, li { font-size: 14px; color: #c8cede; }
+  ul { padding-left: 20px; margin: 8px 0; }
+  li { margin-bottom: 6px; }
+  a { color: #d8b463; text-decoration: none; }
+  a:hover { color: #ecca82; }
+  code {
+    background: #0e1524;
+    border: 1px solid #232c44;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 12.5px;
+    color: #b6c0d6;
+  }
+  .home-link {
+    display: inline-block;
+    margin-top: 40px;
+    font-size: 13px;
+    color: #8b93a7;
+  }
+  footer {
+    margin-top: 50px;
+    padding-top: 20px;
+    border-top: 1px solid #172033;
+    font-size: 11px;
+    color: #7f8aa3;
+    line-height: 1.8;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>개인정보처리방침</h1>
+  <div class="updated">최종 수정일: 2026-07-19</div>
+
+  <p>
+    MatchManager(이하 "서비스")는 리그 오브 레전드 5:5 내전 팀 밸런스 매칭을 위한 개인 비영리 프로젝트입니다.
+    이 페이지는 서비스가 어떤 정보를 다루고, 어떻게 사용·보관하는지 설명합니다.
+  </p>
+
+  <h2>수집하는 정보</h2>
+  <p>서비스는 사용자가 직접 입력한 <strong>Riot ID(닉네임#태그)</strong>를 바탕으로 Riot Games 공식 API를 통해 아래 정보를 조회합니다.</p>
+  <ul>
+    <li>소환사 프로필 아이콘, 솔로랭크 티어·디비전·LP</li>
+    <li>최근 경기 전적(승률, 주 포지션, 최근 폼, 라인별 챔피언 통계, 평균 KDA·CS·골드·데미지)</li>
+    <li>챔피언 숙련도 상위 3개, 현재 게임 진행 여부</li>
+  </ul>
+  <p>회원가입, 로그인, 이메일, 결제 정보 등 그 외의 개인정보는 일절 수집하지 않습니다.</p>
+
+  <h2>정보 저장 방식</h2>
+  <ul>
+    <li><strong>서버</strong>: 응답 속도 향상과 Riot API 호출 한도 준수를 위한 단기 캐시(TTL, 최대 24시간)로만 사용하고, 별도의 데이터베이스에 영구 저장하지 않습니다.</li>
+    <li><strong>브라우저(localStorage)</strong>: 조회한 플레이어 정보는 "저장된 플레이어" 목록으로 사용자의 브라우저에만 저장됩니다. 서버로 전송되거나 다른 사용자와 공유되지 않으며, 브라우저 저장소를 지우면 함께 삭제됩니다.</li>
+    <li><strong>공용 로스터</strong>: 서비스 운영자가 사전에 등록한 고정 멤버 목록은 예외적으로 서버에 저장되어 모든 방문자에게 동일하게 노출됩니다.</li>
+  </ul>
+
+  <h2>AI 매칭 기능(Gemini)</h2>
+  <p>
+    "AI로 짜기" 기능을 사용하면, 실명·소환사 태그·puuid 등 식별 가능한 정보를 제거하고 익명화한 선수 데이터(점수, 포지션, 최근 폼, 챔피언 통계 등)만
+    Google Gemini API로 전송되어 팀 구성 및 분석에 사용됩니다. 이 요청은 일일/동시/IP당 호출 한도로 제한됩니다.
+  </p>
+
+  <h2>쿠키 및 추적</h2>
+  <p>서비스는 광고, 방문자 추적, 분석 도구(Google Analytics 등)를 사용하지 않습니다. 폰트 로딩을 위해 Google Fonts에 연결하며, 이 과정에서 Google의 자체 정책에 따라 최소한의 접속 정보(IP 등)가 Google로 전달될 수 있습니다.</p>
+
+  <h2>제3자 서비스</h2>
+  <ul>
+    <li><a href="https://developer.riotgames.com/policies/general" target="_blank" rel="noopener">Riot Games API</a> — 소환사/전적 데이터 조회</li>
+    <li><a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener">Google Gemini API</a> — AI 매칭 기능(선택 사용)</li>
+    <li>Google Fonts — 웹폰트 로딩</li>
+    <li>Render — 서비스 호스팅</li>
+  </ul>
+  <p>각 서비스의 데이터 처리는 해당 서비스 자체의 개인정보처리방침을 따릅니다.</p>
+
+  <h2>정보 삭제</h2>
+  <p>
+    "저장된 플레이어" 목록은 사이드바에서 개별 항목을 삭제하거나 브라우저의 사이트 데이터를 지워 전체 삭제할 수 있습니다.
+    공용 로스터 항목 삭제 등 그 외 문의는 아래 연락처로 남겨주세요.
+  </p>
+
+  <h2>문의</h2>
+  <p>
+    서비스 관련 문의나 삭제 요청은
+    <a href="https://github.com/jongheecode/LOL-MatchManager/issues" target="_blank" rel="noopener">GitHub 저장소 이슈</a>로 남겨주세요.
+  </p>
+
+  <a class="home-link" href="/">← MatchManager로 돌아가기</a>
+
+  <footer>
+    MatchManager isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone
+    officially involved in producing or managing League of Legends. League of Legends and Riot Games are
+    trademarks or registered trademarks of Riot Games, Inc. League of Legends © Riot Games, Inc.
+    <br />
+    이 사이트는 Riot Games의 공식 서비스가 아니며, Riot Games와 무관하게 개인이 만든 비공식 팬 프로젝트입니다.
+  </footer>
+</div>
+</body>
+</html>
