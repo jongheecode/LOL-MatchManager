@@ -3,17 +3,21 @@ import cors from 'cors';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { DEFAULT_PLATFORM, DEFAULT_REGIONAL, PORT, RIOT_API_KEY } from './env.js';
+import { APP_ORIGIN, DEFAULT_PLATFORM, DEFAULT_REGIONAL, GEMINI_API_KEY, PORT, RIOT_API_KEY } from './env.js';
 import { getDdragon, startDdragonRefresh, ddragonVersion, allChampions } from './ddragon.js';
 import { buildPlayerProfile, resolveAccount } from './profile.js';
 import { RiotApiError } from './riot.js';
 import { ROSTER } from './roster.js';
 import { riotCache } from './cache.js';
+import { GeminiError } from './gemini.js';
+import { aiAnalyze, aiMatchmake, AiValidationError, validateAssignments, validatePicks, validatePlayers } from './aiMatch.js';
+import { aiGuard, ConcurrencyError, DailyLimitError } from './aiGuard.js';
 import type { AnalyzeEvent, Player, Position } from './types.js';
 
 const app = express();
-app.use(cors());
-app.use(express.json());
+app.set('trust proxy', 1); // Render runs behind a proxy — read the real client IP from X-Forwarded-For
+app.use(cors(APP_ORIGIN ? { origin: APP_ORIGIN } : undefined));
+app.use(express.json({ limit: '64kb' }));
 
 function messageFor(err: unknown): { status: number; message: string } {
   if (err instanceof RiotApiError) {
@@ -165,6 +169,66 @@ app.post('/api/analyze', async (req, res) => {
   }
   write({ type: 'complete' });
   res.end();
+});
+
+function aiErrorFor(err: unknown): { status: number; message: string } {
+  if (err instanceof AiValidationError) return { status: err.status, message: err.message };
+  if (err instanceof DailyLimitError) return { status: 503, message: err.message };
+  if (err instanceof ConcurrencyError) return { status: 429, message: err.message };
+  if (err instanceof GeminiError) {
+    if (err.status === 429) return { status: 429, message: 'AI 요청 한도를 초과했습니다. 잠시 후 다시 시도하세요.' };
+    if (err.status === 401 || err.status === 403) return { status: 502, message: 'AI 서비스 인증에 실패했습니다.' };
+    return { status: 502, message: 'AI 분석에 실패했습니다. 잠시 후 다시 시도하세요.' };
+  }
+  return { status: 500, message: err instanceof Error ? err.message : 'AI 오류' };
+}
+
+// Ensure Data Dragon (the champion allowlist source) is loaded before AI routes touch it —
+// championByEnglishKey() returns undefined until then, which would reject valid champions.
+async function ensureAi(res: express.Response): Promise<boolean> {
+  if (!GEMINI_API_KEY) {
+    res.status(503).json({ message: 'AI 기능이 설정되지 않았습니다.' });
+    return false;
+  }
+  try {
+    await getDdragon();
+  } catch {
+    res.status(503).json({ message: '챔피언 데이터가 아직 준비되지 않았습니다. 잠시 후 다시 시도하세요.' });
+    return false;
+  }
+  return true;
+}
+
+app.post('/api/ai/matchmake', async (req, res) => {
+  if (!aiGuard.checkIp(req.ip ?? 'unknown')) {
+    return res.status(429).json({ message: 'AI 요청이 너무 잦습니다. 잠시 후 다시 시도하세요.' });
+  }
+  if (!(await ensureAi(res))) return;
+  try {
+    const players = validatePlayers(req.body?.players);
+    const result = await aiMatchmake(players, aiGuard);
+    res.json(result);
+  } catch (err) {
+    const { status, message } = aiErrorFor(err);
+    res.status(status).json({ message });
+  }
+});
+
+app.post('/api/ai/analyze', async (req, res) => {
+  if (!aiGuard.checkIp(req.ip ?? 'unknown')) {
+    return res.status(429).json({ message: 'AI 요청이 너무 잦습니다. 잠시 후 다시 시도하세요.' });
+  }
+  if (!(await ensureAi(res))) return;
+  try {
+    const players = validatePlayers(req.body?.players);
+    const { blue, red } = validateAssignments(req.body?.blue, req.body?.red, players);
+    const picks = validatePicks(req.body?.picks, players);
+    const result = await aiAnalyze(blue, red, players, picks, aiGuard);
+    res.json(result);
+  } catch (err) {
+    const { status, message } = aiErrorFor(err);
+    res.status(status).json({ message });
+  }
 });
 
 // Serve the built frontend from the same origin/port so the whole app is one deployable

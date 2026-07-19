@@ -1,6 +1,6 @@
 import type { Rates } from '../types';
 
-export function WinGauge({ rates, verdict }: { rates: Rates; verdict: string }) {
+export function WinGauge({ rates, verdict, showBreakdown = true }: { rates: Rates; verdict: string; showBreakdown?: boolean }) {
   const { blue, red, breakdown, bKda, rKda } = rates;
   return (
     <div
@@ -37,28 +37,34 @@ export function WinGauge({ rates, verdict }: { rates: Rates; verdict: string }) 
         <div style={{ height: '100%', flex: 1, background: 'linear-gradient(90deg, #f0656a, #b0353a)' }} />
       </div>
       <div style={{ textAlign: 'center', marginTop: 11, fontSize: 12.5, color: '#8b93a7' }}>{verdict}</div>
-      <div
-        style={{
-          marginTop: 12,
-          paddingTop: 11,
-          borderTop: '1px solid #1a2236',
-          display: 'flex',
-          justifyContent: 'center',
-          flexWrap: 'wrap',
-          gap: '4px 16px',
-          fontSize: 11,
-          color: '#6f7b96',
-        }}
-      >
-        <span>
-          근거 분해 (블루 기준) — MMR만 <b style={{ color: '#b6c0d6' }}>{breakdown.scoreOnlyPct}%</b> · 최근 폼만{' '}
-          <b style={{ color: '#b6c0d6' }}>{breakdown.formOnlyPct}%</b> · 평균 KDA만{' '}
-          <b style={{ color: '#b6c0d6' }}>{breakdown.kdaOnlyPct}%</b> → 종합 <b style={{ color: '#d8b463' }}>{blue}%</b>
-        </span>
-        <span>
-          평균 KDA 블루 <b style={{ color: '#5aa9ff' }}>{bKda.toFixed(2)}</b> · 레드 <b style={{ color: '#f0656a' }}>{rKda.toFixed(2)}</b>
-        </span>
-      </div>
+      {showBreakdown ? (
+        <div
+          style={{
+            marginTop: 12,
+            paddingTop: 11,
+            borderTop: '1px solid #1a2236',
+            display: 'flex',
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+            gap: '4px 16px',
+            fontSize: 11,
+            color: '#6f7b96',
+          }}
+        >
+          <span>
+            근거 분해 (블루 기준) — MMR만 <b style={{ color: '#b6c0d6' }}>{breakdown.scoreOnlyPct}%</b> · 최근 폼만{' '}
+            <b style={{ color: '#b6c0d6' }}>{breakdown.formOnlyPct}%</b> · 평균 KDA만{' '}
+            <b style={{ color: '#b6c0d6' }}>{breakdown.kdaOnlyPct}%</b> → 종합 <b style={{ color: '#d8b463' }}>{blue}%</b>
+          </span>
+          <span>
+            평균 KDA 블루 <b style={{ color: '#5aa9ff' }}>{bKda.toFixed(2)}</b> · 레드 <b style={{ color: '#f0656a' }}>{rKda.toFixed(2)}</b>
+          </span>
+        </div>
+      ) : (
+        <div style={{ marginTop: 12, paddingTop: 11, borderTop: '1px solid #1a2236', textAlign: 'center', fontSize: 11, color: '#8f7bd0' }}>
+          🤖 AI가 예측한 승률입니다 — 아래 AI 분석에서 근거를 확인하세요
+        </div>
+      )}
     </div>
   );
 }

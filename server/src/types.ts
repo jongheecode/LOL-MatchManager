@@ -57,3 +57,53 @@ export type AnalyzeEvent =
   | { type: 'done'; index: number; player: Player }
   | { type: 'error'; index: number; message: string }
   | { type: 'complete' };
+
+/** Anonymized per-player stats accepted by /api/ai/*. No name/tier free-strings; champ is a DDragon key. */
+export interface AiPlayerInput {
+  puuid: string;
+  score: number;
+  mainPos: Position;
+  pref: Position | null;
+  form: { wr: number; trend: Trend };
+  mainRoleKda: number | null;
+  lanes: Partial<Record<Position, { champKey: string; games: number; wr: number }[]>>;
+}
+
+export interface AiPick {
+  puuid: string;
+  champKey: string;
+}
+
+export interface AiTeamAssignment {
+  puuid: string;
+  pos: Position;
+}
+
+export interface AiLaneMatchup {
+  pos: Position;
+  favored: 'blue' | 'red' | 'even';
+  note: string;
+}
+
+export interface AiMatchResult {
+  blue: AiTeamAssignment[];
+  red: AiTeamAssignment[];
+  blueWinRate: number;
+  analysis: string;
+  laneMatchups: AiLaneMatchup[];
+}
+
+export type AiAnalysis = Omit<AiMatchResult, 'blue' | 'red'>;
+
+/** Anonymized (P0x) variant cached server-side — never contains a real puuid. */
+export interface AnonAssignment {
+  id: string;
+  pos: Position;
+}
+export interface AnonymousAiMatchResult {
+  blue: AnonAssignment[];
+  red: AnonAssignment[];
+  blueWinRate: number;
+  analysis: string;
+  laneMatchups: AiLaneMatchup[];
+}

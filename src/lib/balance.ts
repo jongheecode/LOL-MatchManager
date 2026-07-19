@@ -1,4 +1,4 @@
-import type { ChampSummary, Player, Rates, TeamEntry, Teams } from '../types';
+import type { AiMatchResult, AiTeamAssignment, ChampSummary, Player, Rates, TeamEntry, Teams } from '../types';
 import { POSITION_ORDER, posLabel } from './positions';
 
 /** Snake-draft the 10 players into two balanced pools by score, then assign positions. */
@@ -15,6 +15,17 @@ export function buildTeams(players: Player[], jitter: boolean): Teams {
   arr.forEach((x, i) => (pattern[i] === 'B' ? blueP : redP).push(x.p));
 
   return { blue: assign(blueP), red: assign(redP) };
+}
+
+/** Rebuild Teams from an AI matchmaking result, ordered by position for display. */
+export function teamsFromAi(result: AiMatchResult, players: Player[]): Teams {
+  const byPuuid = new Map(players.map((p) => [p.puuid, p]));
+  const toEntry = (a: AiTeamAssignment): TeamEntry => {
+    const player = byPuuid.get(a.puuid)!;
+    return { pos: a.pos, player, honored: (player.pref || player.mainPos) === a.pos };
+  };
+  const order = (side: AiTeamAssignment[]) => POSITION_ORDER.map((pos) => toEntry(side.find((a) => a.pos === pos)!));
+  return { blue: order(result.blue), red: order(result.red) };
 }
 
 /** Give each player their preferred/main position where possible, fill the rest by leftover MMR. */

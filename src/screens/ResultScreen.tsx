@@ -1,10 +1,11 @@
-import type { ChampSummary, Rates, Teams } from '../types';
+import type { AiAnalysis, ChampSummary, Rates, Teams } from '../types';
 import type { ChampPicks, TeamSlotRef } from '../lib/balance';
 import { topScore } from '../lib/balance';
 import { Logo } from '../components/Logo';
 import { WinGauge } from '../components/WinGauge';
 import { ResultCard } from '../components/ResultCard';
 import { BalanceSummary } from '../components/BalanceSummary';
+import { AiAnalysisPanel } from '../components/AiAnalysisPanel';
 
 export function ResultScreen({
   teams,
@@ -22,6 +23,11 @@ export function ResultScreen({
   onCopy,
   onReset,
   onStartGame,
+  teamOrigin,
+  aiStatus,
+  aiAnalysis,
+  onAiMatch,
+  onAiReanalyze,
 }: {
   teams: Teams;
   rates: Rates;
@@ -38,6 +44,11 @@ export function ResultScreen({
   onCopy: () => void;
   onReset: () => void;
   onStartGame: () => void;
+  teamOrigin: 'algo' | 'ai';
+  aiStatus: 'idle' | 'loading' | 'fresh' | 'stale';
+  aiAnalysis: AiAnalysis | null;
+  onAiMatch: () => void;
+  onAiReanalyze: () => void;
 }) {
   const gap = Math.abs(rates.blue - rates.red);
   const verdict =
@@ -45,6 +56,10 @@ export function ResultScreen({
 
   const blueTop = topScore(teams.blue);
   const redTop = topScore(teams.red);
+
+  const aiMode = teamOrigin === 'ai';
+  const aiFresh = aiMode && aiStatus === 'fresh' && !!aiAnalysis;
+  const aiLoading = aiStatus === 'loading';
 
   return (
     <div style={{ maxWidth: 1440, margin: '0 auto', padding: '26px 40px 40px' }}>
@@ -58,7 +73,7 @@ export function ResultScreen({
         </div>
       </div>
 
-      <WinGauge rates={rates} verdict={verdict} />
+      <WinGauge rates={rates} verdict={verdict} showBreakdown={!aiFresh} />
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 54px 1fr', gap: 0, alignItems: 'start' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -111,7 +126,19 @@ export function ResultScreen({
         </div>
       </div>
 
-      <BalanceSummary teams={teams} rates={rates} picks={champPicks} open={summaryOpen} onToggle={onToggleSummary} />
+      {aiMode && aiAnalysis ? (
+        <AiAnalysisPanel
+          analysis={aiAnalysis.analysis}
+          laneMatchups={aiAnalysis.laneMatchups}
+          stale={aiStatus === 'stale'}
+          loading={aiLoading}
+          onReanalyze={onAiReanalyze}
+          open={summaryOpen}
+          onToggle={onToggleSummary}
+        />
+      ) : (
+        <BalanceSummary teams={teams} rates={rates} picks={champPicks} open={summaryOpen} onToggle={onToggleSummary} />
+      )}
 
       <div style={{ marginTop: 22, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12 }}>
         <button
@@ -154,20 +181,41 @@ export function ResultScreen({
         </button>
         <button
           type="button"
+          onClick={aiMode && aiStatus === 'stale' ? onAiReanalyze : onAiMatch}
+          disabled={aiLoading}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            background: aiLoading ? '#20203a' : 'linear-gradient(140deg, #b79cff, #7d63c4)',
+            border: 'none',
+            color: aiLoading ? '#8b93a7' : '#0b0f18',
+            padding: '13px 22px',
+            borderRadius: 11,
+            fontSize: 14,
+            fontWeight: 700,
+            cursor: aiLoading ? 'default' : 'pointer',
+          }}
+        >
+          {aiLoading ? 'AI 분석 중…' : aiMode && aiStatus === 'stale' ? '🔄 AI 재분석' : '✨ AI로 짜기'}
+        </button>
+        <button
+          type="button"
           onClick={onStartGame}
+          disabled={aiLoading}
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: 9,
-            background: 'linear-gradient(140deg, #e6c574, #c19a3f)',
+            background: aiLoading ? '#3a3526' : 'linear-gradient(140deg, #e6c574, #c19a3f)',
             border: 'none',
-            color: '#0b0f18',
+            color: aiLoading ? '#8b8368' : '#0b0f18',
             padding: '14px 34px',
             borderRadius: 11,
             fontSize: 15.5,
             fontWeight: 700,
-            cursor: 'pointer',
-            boxShadow: '0 8px 26px rgba(216,180,99,.25)',
+            cursor: aiLoading ? 'default' : 'pointer',
+            boxShadow: aiLoading ? 'none' : '0 8px 26px rgba(216,180,99,.25)',
             fontFamily: "'Rajdhani','Noto Sans KR'",
             letterSpacing: 0.5,
           }}
