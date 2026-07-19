@@ -9,6 +9,9 @@ export function Footer() {
           <br />
           이 사이트는 Riot Games의 공식 서비스가 아니며, Riot Games와 무관하게 개인이 만든 비공식 팬 프로젝트입니다.
         </div>
+        <a href="/privacy.html" style={{ display: 'inline-block', marginTop: 10, fontSize: 11, color: '#8b93a7' }}>
+          개인정보처리방침
+        </a>
       </div>
     </div>
   );
