@@ -43,6 +43,13 @@ export default function App() {
   const [toast, setToast] = useState('');
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
 
+  // Screens are swapped in place (no route change), so the browser keeps whatever scroll
+  // position the previous screen was left at — reset it or a screen can open mid-scroll with
+  // its header cut off above the viewport.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [screen]);
+
   useEffect(() => {
     fetchMeta()
       .then((m) => {
