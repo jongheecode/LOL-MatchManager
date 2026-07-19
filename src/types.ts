@@ -140,6 +140,46 @@ export interface AnalyzeRequestPlayer {
   pref: Position | null;
 }
 
+/** Anonymized per-player stats sent to the AI backend. No puuid/name/tier — see server/src/aiMatch.ts. */
+export interface AiPlayerInput {
+  puuid: string;
+  score: number;
+  mainPos: Position;
+  pref: Position | null;
+  form: { wr: number; trend: Trend };
+  mainRoleKda: number | null;
+  lanes: Partial<Record<Position, { champKey: string; games: number; wr: number }[]>>;
+}
+
+/** This round's champion pick for a player (Data Dragon English key). */
+export interface AiPick {
+  puuid: string;
+  champKey: string;
+}
+
+export interface AiTeamAssignment {
+  puuid: string;
+  pos: Position;
+}
+
+export interface AiLaneMatchup {
+  pos: Position;
+  favored: 'blue' | 'red' | 'even';
+  note: string;
+}
+
+/** AI matchmaking result: composed teams + win rate + reasoning. */
+export interface AiMatchResult {
+  blue: AiTeamAssignment[];
+  red: AiTeamAssignment[];
+  blueWinRate: number;
+  analysis: string;
+  laneMatchups: AiLaneMatchup[];
+}
+
+/** AI re-analysis of an already-composed team (no re-composition). */
+export type AiAnalysis = Omit<AiMatchResult, 'blue' | 'red'>;
+
 export interface PlayerGameStat {
   puuid: string;
   pos: Position;

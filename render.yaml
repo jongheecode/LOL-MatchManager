@@ -14,3 +14,15 @@ services:
         value: asia
       - key: NODE_VERSION
         value: 20
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash
+      - key: AI_GLOBAL_DAILY_LIMIT
+        value: 50
+      - key: AI_IP_LIMIT_PER_MINUTE
+        value: 2
+      - key: AI_MAX_CONCURRENT
+        value: 2
+      - key: APP_ORIGIN
+        value: https://pentabalance.onrender.com
