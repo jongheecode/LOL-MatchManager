@@ -53,13 +53,6 @@ export function champPoolFor(entry: TeamEntry): { champ: ChampSummary; games: nu
   return entry.player.posChampPool[entry.pos] ?? [];
 }
 
-export function dangerPicksFor(entry: TeamEntry): { champ: ChampSummary; games: number; winRate: number }[] {
-  return champPoolFor(entry)
-    .filter((d) => d.games >= 3 && d.winRate >= 60)
-    .sort((a, b) => b.winRate - a.winRate || b.games - a.games)
-    .slice(0, 2);
-}
-
 export function effectiveWr(entry: TeamEntry, picks?: ChampPicks): number {
   const picked = picks?.[entry.player.puuid];
   if (!picked) return entry.player.form.wr;

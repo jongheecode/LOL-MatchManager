@@ -4,6 +4,7 @@ import type { Position, Slot } from '../types';
 import { Avatar } from './Avatar';
 import { TierEmblem } from './TierEmblem';
 import { PositionButtons } from './PositionButtons';
+import { HEX_CLIP } from './Hexagon';
 import { posColor, posLabel } from '../lib/positions';
 
 export function SlotCard({
@@ -58,7 +59,7 @@ export function SlotCard({
             height: 30,
             flex: 'none',
             background: '#1c2437',
-            clipPath: 'polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)',
+            clipPath: HEX_CLIP,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',

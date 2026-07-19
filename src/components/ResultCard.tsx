@@ -4,10 +4,10 @@ import { Avatar } from './Avatar';
 import { TierEmblem } from './TierEmblem';
 import { ChampIcon } from './ChampIcon';
 import { ChampionPicker } from './ChampionPicker';
+import { HEX_CLIP } from './Hexagon';
 import { posColor, posLabel } from '../lib/positions';
 import { champPoolFor, effectiveWr, reasonText } from '../lib/balance';
-
-const CLIP = 'polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)';
+import { posEmblemGradient } from '../lib/avatar';
 
 export function ResultCard({
   entry,
@@ -62,14 +62,14 @@ export function ResultCard({
         style={{
           width: 26,
           height: 30,
-          clipPath: CLIP,
+          clipPath: HEX_CLIP,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           fontSize: 11,
           fontWeight: 700,
           color: '#0b0f18',
-          background: `linear-gradient(140deg, ${pColor}, ${pColor}bb)`,
+          background: posEmblemGradient(pColor),
         }}
       >
         {entry.pos}

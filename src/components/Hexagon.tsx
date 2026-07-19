@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 
-const CLIP = 'polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)';
+/** The hexagon clip-path used across position badges, avatars, and tier emblems throughout the app. */
+export const HEX_CLIP = 'polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)';
 
 export function Hexagon({
   width,
@@ -22,7 +23,7 @@ export function Hexagon({
         height,
         flex: 'none',
         background,
-        clipPath: CLIP,
+        clipPath: HEX_CLIP,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

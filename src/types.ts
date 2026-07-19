@@ -133,13 +133,6 @@ export type AnalyzeEvent =
   | { type: 'error'; index: number; message: string }
   | { type: 'complete' };
 
-export interface AnalyzeRequestPlayer {
-  puuid: string;
-  name: string;
-  tag: string;
-  pref: Position | null;
-}
-
 export interface PlayerGameStat {
   puuid: string;
   pos: Position;

@@ -79,7 +79,3 @@ export async function analyzeStream(
   }
   if (buffer.trim()) onEvent(JSON.parse(buffer.trim()) as AnalyzeEvent);
 }
-
-export function playerFromLookup(res: LookupResponse | LookupError): Player | null {
-  return res.ok ? res.player : null;
-}
